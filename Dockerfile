@@ -9,33 +9,45 @@ RUN apt-get update -y && apt-get upgrade -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Install Deno
+# 3. Install Deno (Global Install Fix)
+# We move the binary to /usr/local/bin so the non-root user can access it
 RUN curl -fsSL https://deno.land/install.sh | sh \
-    && ln -s /root/.deno/bin/deno /usr/local/bin/deno
+    && mv /root/.deno/bin/deno /usr/local/bin/deno \
+    && chmod 755 /usr/local/bin/deno
 
-# 4. Copy all files to /app
+# 4. Create a Non-Root User (Fixes CKV_DOCKER_3)
+RUN useradd -m -u 1000 user
+
+# 5. Copy all files
 COPY . .
 
-# 5. Install Python Requirements
+# 6. Install Python Requirements
 RUN pip3 install -U pip && pip3 install -U -r requirements.txt
 
-# 6. Force Python to look in /app for the 'anony' folder
+# 7. Force Python to look in /app
 ENV PYTHONPATH="/app:$PYTHONPATH"
 
-# 7. START SCRIPT (Explicit /app/.env path)
+# 8. Create the Start Script
+# We write this as root first, then we will give permission to the user
 RUN echo "#!/bin/bash" > run_bot.sh && \
-    echo "echo 'Building .env file in /app...'" >> run_bot.sh && \
-    # We write specifically to /app/.env to be safe
-    echo "echo \"API_ID=\${API_ID}\" > /app/.env" >> run_bot.sh && \
-    echo "echo \"API_HASH=\${API_HASH}\" >> /app/.env" >> run_bot.sh && \
-    echo "echo \"BOT_TOKEN=\${BOT_TOKEN}\" >> /app/.env" >> run_bot.sh && \
-    echo "echo \"MONGO_URL=\${MONGO_URL}\" >> /app/.env" >> run_bot.sh && \
-    echo "echo \"OWNER_ID=\${OWNER_ID}\" >> /app/.env" >> run_bot.sh && \
-    echo "echo \"SESSION=\${SESSION}\" >> /app/.env" >> run_bot.sh && \
-    echo "echo \"LOGGER_ID=\${LOGGER_ID}\" >> /app/.env" >> run_bot.sh && \
+    echo "echo 'Building .env file...'" >> run_bot.sh && \
+    # echo "echo \"API_ID=\${API_ID}\" > /app/.env" >> run_bot.sh && \
+    # echo "echo \"API_HASH=\${API_HASH}\" >> /app/.env" >> run_bot.sh && \
+    # echo "echo \"BOT_TOKEN=\${BOT_TOKEN}\" >> /app/.env" >> run_bot.sh && \
+    # echo "echo \"MONGO_URL=\${MONGO_URL}\" >> /app/.env" >> run_bot.sh && \
+    # echo "echo \"OWNER_ID=\${OWNER_ID}\" >> /app/.env" >> run_bot.sh && \
+    # echo "echo \"SESSION=\${SESSION}\" >> /app/.env" >> run_bot.sh && \
+    # echo "echo \"LOGGER_ID=\${LOGGER_ID}\" >> /app/.env" >> run_bot.sh && \
     echo "echo 'Starting Bot...'" >> run_bot.sh && \
     echo "python3 -m anony" >> run_bot.sh && \
     chmod +x run_bot.sh
 
-# 8. Run the script
+# 9. GRANT PERMISSIONS (Critical Step)
+# Give the new user ownership of the /app folder so it can write the .env file
+RUN chown -R user:user /app
+
+# 10. Switch to Non-Root User
+USER user
+
+# 11. Run the script
 CMD ["bash", "run_bot.sh"]
