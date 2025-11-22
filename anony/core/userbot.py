@@ -19,7 +19,7 @@ class Userbot(Client):
         self.clients = []
         clients = {"one": "SESSION1", "two": "SESSION2", "three": "SESSION3"}
         for key, string_key in clients.items():
-            name = f"AnonyUB{key[-1]}"
+            name = f"Alexahelper{key[-1]}"
             session = getattr(config, string_key)
             setattr(
                 self,
