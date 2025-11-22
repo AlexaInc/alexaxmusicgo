@@ -2,22 +2,44 @@
 # Licensed under the MIT License.
 # This file is part of AnonXMusic
 
-
 import asyncio
 import importlib
-
+from aiohttp import web # <--- 1. Import web module
 from pyrogram import idle
 
 from anony import (anon, app, config, db,
                    logger, stop, userbot, yt)
 from anony.plugins import all_modules
 
+# --- 2. Define the Fake Health Route ---
+async def health_check(request):
+    return web.Response(text="Alive")
+
+async def start_health_server():
+    # Create a simple web app
+    server = web.Application()
+    server.router.add_get("/", health_check)
+    server.router.add_get("/health", health_check)
+    
+    # Create the runner
+    runner = web.AppRunner(server)
+    await runner.setup()
+    
+    # Listen on port 8080 (Required by Back4App)
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+    logger.info("Health Server started on port 8080")
+# ---------------------------------------
 
 async def main():
     await db.connect()
     await app.boot()
     await userbot.boot()
     await anon.boot()
+
+    # --- 3. Start the Fake Server ---
+    await start_health_server()
+    # --------------------------------
 
     for module in all_modules:
         importlib.import_module(f"anony.plugins.{module}")
