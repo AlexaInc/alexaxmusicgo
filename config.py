@@ -42,6 +42,9 @@ class Config:
         
         # Proxy Support
         self.PROXY_URL = getenv("PROXY_URL")
+        if self.PROXY_URL:
+            self.PROXY_URL = self.PROXY_URL.strip().strip("'").strip('"')
+            
         self.PROXY = self._parse_proxy(self.PROXY_URL)
 
     def _parse_proxy(self, proxy_url: str | None) -> dict | None:

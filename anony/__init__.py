@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 # Early Proxy Injection
 PROXY_URL = getenv("PROXY_URL")
 if PROXY_URL:
+    PROXY_URL = PROXY_URL.strip().strip("'").strip('"')
     os.environ["http_proxy"] = PROXY_URL
     os.environ["https_proxy"] = PROXY_URL
     os.environ["all_proxy"] = PROXY_URL

@@ -37,10 +37,16 @@ async def net_probe():
         p = config.PROXY
         logger.info(f"Checking Proxy Connectivity to {p['hostname']}:{p['port']}...")
         try:
-            socket.create_connection((p['hostname'], p['port']), timeout=5).close()
+            # 1. DNS Check
+            logger.info(f"Resolving DNS for {p['hostname']}...")
+            ip = socket.gethostbyname(p['hostname'].strip())
+            logger.info(f"✅ DNS Resolved {p['hostname']} to {ip}")
+            
+            # 2. Connection Check
+            socket.create_connection((ip, p['port']), timeout=5).close()
             logger.info("✅ Proxy server is reachable.")
         except Exception as e:
-            logger.error(f"❌ Proxy server is UNREACHABLE: {e}")
+            logger.error(f"❌ Proxy connectivity failed: {e}")
             
     logger.info("Checking connection to Telegram (149.154.167.51:443)...")
     try:
