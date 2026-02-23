@@ -75,6 +75,7 @@ async def net_probe():
         logger.warning(f"⚠️ Telegram is NOT reachable directly: {e}")
 
 async def main():
+    await start_health_server() # Ensure HF sees port 7860 early
     await net_probe()
     await db.connect()
     await app.boot()
