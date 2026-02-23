@@ -1,10 +1,14 @@
+import logging
 from os import getenv
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 class Config:
     def __init__(self):
+        self.PORT = int(getenv("PORT", 7860))
         self.API_ID = int(getenv("API_ID", 0))
         self.API_HASH = getenv("API_HASH")
 
@@ -50,16 +54,20 @@ class Config:
             scheme = parsed.scheme.lower()
             
             if scheme not in ["http", "socks4", "socks5"]:
+                logger.warning(f"Invalid proxy scheme: {scheme}")
                 return None
-                
-            return {
+            
+            res = {
                 "scheme": scheme,
                 "hostname": parsed.hostname,
                 "port": parsed.port,
                 "username": parsed.username,
                 "password": parsed.password,
             }
-        except Exception:
+            logger.info(f"Proxy configuration parsed for {scheme}://{parsed.hostname}:{parsed.port}")
+            return res
+        except Exception as e:
+            logger.error(f"Error parsing PROXY_URL: {e}")
             return None
 
     def check(self):

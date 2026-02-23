@@ -10,6 +10,11 @@ from anony import config, logger
 
 class Bot(pyrogram.Client):
     def __init__(self):
+        if config.PROXY:
+            logger.info(f"Bot MTProto Proxy: {config.PROXY['scheme']}://{config.PROXY['hostname']}:{config.PROXY['port']}")
+        else:
+            logger.warning("Bot is starting without MTProto proxy.")
+            
         super().__init__(
             name="Alexa",
             api_id=config.API_ID,

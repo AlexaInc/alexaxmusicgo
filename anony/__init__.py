@@ -15,6 +15,7 @@ if PROXY_URL:
     os.environ["http_proxy"] = PROXY_URL
     os.environ["https_proxy"] = PROXY_URL
     os.environ["all_proxy"] = PROXY_URL
+    logger.info(f"Global Proxy Injected: {PROXY_URL.split('@')[-1]}") # Sanitized log
 
 logging.basicConfig(
     format="[%(asctime)s - %(levelname)s] - %(name)s: %(message)s",

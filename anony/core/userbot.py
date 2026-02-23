@@ -18,6 +18,11 @@ class Userbot(Client):
         """
         self.clients = []
         clients = {"one": "SESSION1", "two": "SESSION2", "three": "SESSION3"}
+        if config.PROXY:
+            logger.info("Assistant MTProto Proxy enabled.")
+        else:
+            logger.warning("Assistants are starting without MTProto proxy.")
+
         for key, string_key in clients.items():
             name = f"Alexahelper{key[-1]}"
             session = getattr(config, string_key)

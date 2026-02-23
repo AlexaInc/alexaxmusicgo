@@ -25,10 +25,10 @@ async def start_health_server():
     runner = web.AppRunner(server)
     await runner.setup()
     
-    # Listen on port 7860 (Hugging Face Default)
-    site = web.TCPSite(runner, "0.0.0.0", 7860)
+    # Listen on port (Hugging Face Default is 7860)
+    site = web.TCPSite(runner, "0.0.0.0", config.PORT)
     await site.start()
-    logger.info("Health Server started on port 7860")
+    logger.info(f"Health Server started on port {config.PORT}")
 # ---------------------------------------
 
 async def main():
