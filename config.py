@@ -61,9 +61,12 @@ class Config:
                 "scheme": scheme,
                 "hostname": parsed.hostname,
                 "port": parsed.port,
-                "username": parsed.username,
-                "password": parsed.password,
             }
+            if parsed.username:
+                res["username"] = parsed.username
+            if parsed.password:
+                res["password"] = parsed.password
+                
             logger.info(f"Proxy configuration parsed for {scheme}://{parsed.hostname}:{parsed.port}")
             return res
         except Exception as e:
