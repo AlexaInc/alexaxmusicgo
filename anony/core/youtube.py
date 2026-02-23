@@ -130,13 +130,13 @@ class YouTube:
                 return None
 
             fmt = "mp4" if video else "mp3"
-            quality = "480" if video else "128"
+            quality = "360" if video else "64"
             
             payload = {
                 "link": link,
                 "format": fmt,
-                "audioBitrate": "128" if video else quality,
-                "videoQuality": quality if video else "720",
+                "audioBitrate": "64" if video else quality,
+                "videoQuality": quality if video else "360",
                 "filenameStyle": "pretty",
                 "vCodec": "h264"
             }

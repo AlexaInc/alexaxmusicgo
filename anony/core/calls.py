@@ -57,11 +57,7 @@ class TgCall(PyTgCalls):
 
         stream = types.MediaStream(
             media_path=media.file_path,
-            audio_parameters=(
-                types.AudioQuality.LOW
-                if "live365" in str(media.file_path)
-                else types.AudioQuality.HIGH
-            ),
+            audio_parameters=types.AudioQuality.LOW,
             video_parameters=types.VideoQuality.SD_360p,
             audio_flags=types.MediaStream.Flags.REQUIRED,
             video_flags=(
