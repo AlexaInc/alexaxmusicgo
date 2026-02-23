@@ -123,7 +123,7 @@ class YouTube:
         return data.get("key") if data else None
 
     async def _cnv_converter(self, link: str, video: bool) -> Optional[str]:
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
+        async with aiohttp.ClientSession(headers=HEADERS, trust_env=False) as session:
             api_key = await self._get_cnv_key(session)
             if not api_key:
                 logger.error("CNV: Could not fetch API Key")
@@ -156,24 +156,6 @@ class YouTube:
         if direct_url:
             return direct_url
             
-        # 2. Fallback: Okatsu API
-        encoded_link = quote(link, safe='')
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            try:
-                logger.info("⚠️ CNV failed, trying Okatsu fallback...")
-                if video:
-                    api_url = f"https://okatsu-rolezapiiz.vercel.app/downloader/ytmp4?url={encoded_link}"
-                    data = await self._try_request(session, "GET", api_url)
-                    if data and data.get("result", {}).get("mp4"):
-                        return data["result"]["mp4"]
-                else:
-                    api_url = f"https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url={encoded_link}"
-                    data = await self._try_request(session, "GET", api_url)
-                    if data and data.get("dl"):
-                        return data["dl"]
-            except Exception as e:
-                logger.warning(f"Okatsu API failed: {e}")
-
         return None
 
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
