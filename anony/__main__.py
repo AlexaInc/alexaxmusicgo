@@ -25,10 +25,10 @@ async def start_health_server():
     runner = web.AppRunner(server)
     await runner.setup()
     
-    # Listen on port 8080 (Required by Back4App)
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    # Listen on port 7860 (Hugging Face Default)
+    site = web.TCPSite(runner, "0.0.0.0", 7860)
     await site.start()
-    logger.info("Health Server started on port 8080")
+    logger.info("Health Server started on port 7860")
 # ---------------------------------------
 
 async def main():
@@ -38,7 +38,7 @@ async def main():
     await anon.boot()
 
     # --- 3. Start the Fake Server ---
-    await start_health_server()
+
     # --------------------------------
 
     for module in all_modules:

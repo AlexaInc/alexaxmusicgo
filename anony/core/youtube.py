@@ -19,6 +19,8 @@ from anony.helpers import Track, utils
 # Configuration matching the JS axios defaults
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Origin': 'https://frame.y2meta-uk.com',
+    'Referer': 'https://frame.y2meta-uk.com/',
     'Accept': 'application/json, text/plain, */*'
 }
 
@@ -100,50 +102,79 @@ class YouTube:
             pass
         return tracks
 
-    # --- API Logic (Replaces yt-dlp) ---
+    # --- API Logic (CNV.cx Implementation) ---
 
-    async def _fetch_json(self, session: aiohttp.ClientSession, url: str):
-        try:
-            async with session.get(url, timeout=60) as response:
-                if response.status == 200:
-                    return await response.json()
-        except Exception:
-            return None
+    async def _try_request(self, session: aiohttp.ClientSession, method: str, url: str, **kwargs):
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            try:
+                async with session.request(method, url, timeout=aiohttp.ClientTimeout(total=60), **kwargs) as response:
+                    if response.status == 200:
+                        return await response.json()
+            except Exception as e:
+                if attempt == attempts:
+                    logger.warning(f"Request to {url} failed after {attempts} attempts: {e}")
+                else:
+                    await asyncio.sleep(attempt)
         return None
 
-    async def _get_download_url(self, link: str, video: bool) -> Optional[str]:
-        # Encode URL to handle special characters safely
-        encoded_link = quote(link, safe='')
-        
+    async def _get_cnv_key(self, session: aiohttp.ClientSession) -> Optional[str]:
+        data = await self._try_request(session, "GET", "https://cnv.cx/v2/sanity/key")
+        return data.get("key") if data else None
+
+    async def _cnv_converter(self, link: str, video: bool) -> Optional[str]:
         async with aiohttp.ClientSession(headers=HEADERS) as session:
-            # 1. Try Okatsu API
+            api_key = await self._get_cnv_key(session)
+            if not api_key:
+                logger.error("CNV: Could not fetch API Key")
+                return None
+
+            fmt = "mp4" if video else "mp3"
+            quality = "480" if video else "128"
+            
+            payload = {
+                "link": link,
+                "format": fmt,
+                "audioBitrate": "128" if video else quality,
+                "videoQuality": quality if video else "720",
+                "filenameStyle": "pretty",
+                "vCodec": "h264"
+            }
+
+            headers = {**HEADERS, "key": api_key}
+            data = await self._try_request(session, "POST", "https://cnv.cx/v2/converter", data=payload, headers=headers)
+            
+            if data and data.get("url"):
+                return data["url"]
+            
+            logger.error(f"CNV: Conversion returned no URL. Response: {data}")
+            return None
+
+    async def _get_download_url(self, link: str, video: bool) -> Optional[str]:
+        # 1. Primary: CNV.cx (User Requested Method)
+        direct_url = await self._cnv_converter(link, video)
+        if direct_url:
+            return direct_url
+            
+        # 2. Fallback: Okatsu API
+        encoded_link = quote(link, safe='')
+        async with aiohttp.ClientSession(headers=HEADERS) as session:
             try:
+                logger.info("⚠️ CNV failed, trying Okatsu fallback...")
                 if video:
                     api_url = f"https://okatsu-rolezapiiz.vercel.app/downloader/ytmp4?url={encoded_link}"
-                    data = await self._fetch_json(session, api_url)
+                    data = await self._try_request(session, "GET", api_url)
                     if data and data.get("result", {}).get("mp4"):
                         return data["result"]["mp4"]
                 else:
                     api_url = f"https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url={encoded_link}"
-                    data = await self._fetch_json(session, api_url)
+                    data = await self._try_request(session, "GET", api_url)
                     if data and data.get("dl"):
                         return data["dl"]
             except Exception as e:
                 logger.warning(f"Okatsu API failed: {e}")
 
-            # 2. Try Izumi API (Fallback)
-            try:
-                logger.info("⚠️ Okatsu failed, trying Izumi fallback...")
-                fmt = "720" if video else "mp3"
-                api_url = f"https://izumiiiiiiii.dpdns.org/downloader/youtube?url={encoded_link}&format={fmt}"
-                data = await self._fetch_json(session, api_url)
-                
-                if data and data.get("result", {}).get("download"):
-                    return data["result"]["download"]
-            except Exception as e:
-                logger.warning(f"Izumi API failed: {e}")
-            
-            return None
+        return None
 
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
         # Construct the full YouTube URL

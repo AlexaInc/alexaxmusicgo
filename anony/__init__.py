@@ -3,9 +3,18 @@
 # This file is part of AnonXMusic
 
 
+import os
 import time
 import logging
+from os import getenv
 from logging.handlers import RotatingFileHandler
+
+# Early Proxy Injection
+PROXY_URL = getenv("PROXY_URL")
+if PROXY_URL:
+    os.environ["http_proxy"] = PROXY_URL
+    os.environ["https_proxy"] = PROXY_URL
+    os.environ["all_proxy"] = PROXY_URL
 
 logging.basicConfig(
     format="[%(asctime)s - %(levelname)s] - %(name)s: %(message)s",

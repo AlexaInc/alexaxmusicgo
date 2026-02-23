@@ -1,7 +1,3 @@
-# Copyright (c) 2025 AnonymousX1025
-# Licensed under the MIT License.
-# This file is part of AnonXMusic
-
 
 from ntgcalls import ConnectionNotFound, TelegramServerError
 from pyrogram.errors import MessageIdInvalid
@@ -61,13 +57,17 @@ class TgCall(PyTgCalls):
 
         stream = types.MediaStream(
             media_path=media.file_path,
-            audio_parameters=types.AudioQuality.HIGH,
-            video_parameters=types.VideoQuality.HD_720p,
+            audio_parameters=(
+                types.AudioQuality.LOW
+                if "live365" in str(media.file_path)
+                else types.AudioQuality.HIGH
+            ),
+            video_parameters=types.VideoQuality.SD_360p,
             audio_flags=types.MediaStream.Flags.REQUIRED,
             video_flags=(
-                types.MediaStream.Flags.AUTO_DETECT
-                if media.video
-                else types.MediaStream.Flags.IGNORE
+                types.MediaStream.Flags.IGNORE
+                if "live365" in str(media.file_path) 
+                else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE)
             ),
             ffmpeg_parameters=f"-ss {seek_time}" if seek_time > 1 else None,
         )
@@ -184,7 +184,7 @@ class TgCall(PyTgCalls):
     async def boot(self) -> None:
         PyTgCallsSession.notice_displayed = True
         for ub in userbot.clients:
-            client = PyTgCalls(ub, cache_duration=100)
+            client = PyTgCalls(ub, cache_duration=20)
             await client.start()
             self.clients.append(client)
             await self.decorators(client)

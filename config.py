@@ -35,6 +35,32 @@ class Config:
         self.DEFAULT_THUMB = getenv("DEFAULT_THUMB", "https://te.legra.ph/file/3e40a408286d4eda24191.jpg")
         self.PING_IMG = getenv("PING_IMG", "https://files.catbox.moe/haagg2.png")
         self.START_IMG = getenv("START_IMG", "https://files.catbox.moe/zvziwk.jpg")
+        
+        # Proxy Support
+        self.PROXY_URL = getenv("PROXY_URL")
+        self.PROXY = self._parse_proxy(self.PROXY_URL)
+
+    def _parse_proxy(self, proxy_url: str | None) -> dict | None:
+        if not proxy_url:
+            return None
+        
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(proxy_url)
+            scheme = parsed.scheme.lower()
+            
+            if scheme not in ["http", "socks4", "socks5"]:
+                return None
+                
+            return {
+                "scheme": scheme,
+                "hostname": parsed.hostname,
+                "port": parsed.port,
+                "username": parsed.username,
+                "password": parsed.password,
+            }
+        except Exception:
+            return None
 
     def check(self):
         missing = [

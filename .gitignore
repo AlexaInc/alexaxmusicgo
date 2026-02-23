@@ -1,11 +1,49 @@
+# Environment & Config
 .env
-.cache
-log.txt
-.DS_Store
-venv/
-cache/
-downloads/
+config.env
+*.env
+app.json
+Procfile
+heroku.yml
+setup
+start
+
+# Python
 __pycache__/
-anony/cookies/*.txt
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+
+# Logs & Temporary Files
+log.txt
+*.log
+.cache/
+cache/
+.DS_Store
+
+# Sessions & Cookies
 *.session
 *.session-journal
+anony/cookies/*.txt
+
+# Zip files
+*.zip
+*.tar
+*.gz

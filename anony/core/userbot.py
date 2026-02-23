@@ -29,6 +29,7 @@ class Userbot(Client):
                     api_id=config.API_ID,
                     api_hash=config.API_HASH,
                     session_string=session,
+                    proxy=config.PROXY,
                 ),
             )
 

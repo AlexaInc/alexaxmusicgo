@@ -32,9 +32,9 @@ ENV PYTHONPATH="/app:$PYTHONPATH"
 RUN sed -i 's/"log.txt"/"\/tmp\/log.txt"/g' anony/__init__.py
 
 # ----------------------------------------------------------------------
-# FIX 2: EXPOSE A PORT (Satisfies Back4App Error)
+# FIX 2: EXPOSE A PORT (Satisfies Hugging Face/Back4App Error)
 # ----------------------------------------------------------------------
-EXPOSE 8080
+EXPOSE 7860
 
 # 8. Grant Permissions
 RUN chown -R 10014:10014 /app
