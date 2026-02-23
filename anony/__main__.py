@@ -33,25 +33,44 @@ async def start_health_server():
 
 async def net_probe():
     import socket
+    import time
+    
+    logger.info("Verifying global DNS resolution (google.com)...")
+    try:
+        ip = socket.gethostbyname("google.com")
+        logger.info(f"✅ Global DNS is working. google.com -> {ip}")
+    except Exception as e:
+        logger.error(f"❌ GLOBAL DNS FAILURE: {e}")
+
     if config.PROXY:
         p = config.PROXY
         logger.info(f"Checking Proxy Connectivity to {p['hostname']}:{p['port']}...")
-        try:
-            # 1. DNS Check
-            logger.info(f"Resolving DNS for {p['hostname']}...")
-            ip = socket.gethostbyname(p['hostname'].strip())
-            logger.info(f"✅ DNS Resolved {p['hostname']} to {ip}")
-            
-            # 2. Connection Check
-            socket.create_connection((ip, p['port']), timeout=5).close()
-            logger.info("✅ Proxy server is reachable.")
-        except Exception as e:
-            logger.error(f"❌ Proxy connectivity failed: {e}")
+        
+        # DNS Retry Loop
+        resolved_ip = None
+        for i in range(3):
+            try:
+                logger.info(f"Resolving DNS for {p['hostname']} (Attempt {i+1}/3)...")
+                resolved_ip = socket.gethostbyname(p['hostname'].strip())
+                logger.info(f"✅ DNS Resolved {p['hostname']} to {resolved_ip}")
+                break
+            except Exception as e:
+                logger.warning(f"DNS Attempt {i+1} failed: {e}")
+                if i < 2: time.sleep(2)
+        
+        if resolved_ip:
+            try:
+                socket.create_connection((resolved_ip, p['port']), timeout=10).close()
+                logger.info("✅ Proxy server is reachable.")
+            except Exception as e:
+                logger.error(f"❌ Proxy connection failed: {e}")
+        else:
+            logger.error("❌ Proxy hostname could not be resolved after 3 attempts.")
             
     logger.info("Checking connection to Telegram (149.154.167.51:443)...")
     try:
         socket.create_connection(("149.154.167.51", 443), timeout=5).close()
-        logger.info("✅ Telegram is reachable directly (No proxy needed?).")
+        logger.info("✅ Telegram is reachable directly.")
     except Exception as e:
         logger.warning(f"⚠️ Telegram is NOT reachable directly: {e}")
 
