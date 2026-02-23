@@ -16,12 +16,13 @@ from py_yt import Playlist, VideosSearch
 from anony import logger
 from anony.helpers import Track, utils
 
-# Configuration matching the JS axios defaults
+# New headers matching user's JS configuration
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Origin': 'https://frame.y2meta-uk.com',
-    'Referer': 'https://frame.y2meta-uk.com/',
-    'Accept': 'application/json, text/plain, */*'
+    'accept': '*/*',
+    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+    'content-type': 'application/json',
+    'Referer': 'https://hansaka1-ytdl.hf.space/',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
 }
 
 class YouTube:
@@ -102,69 +103,12 @@ class YouTube:
             pass
         return tracks
 
-    # --- API Logic (CNV.cx Implementation) ---
-
-    async def _try_request(self, session: aiohttp.ClientSession, method: str, url: str, **kwargs):
-        attempts = 3
-        for attempt in range(1, attempts + 1):
-            try:
-                async with session.request(method, url, timeout=aiohttp.ClientTimeout(total=60), **kwargs) as response:
-                    if response.status == 200:
-                        return await response.json()
-            except Exception as e:
-                if attempt == attempts:
-                    logger.warning(f"Request to {url} failed after {attempts} attempts: {e}")
-                else:
-                    await asyncio.sleep(attempt)
-        return None
-
-    async def _get_cnv_key(self, session: aiohttp.ClientSession) -> Optional[str]:
-        data = await self._try_request(session, "GET", "https://cnv.cx/v2/sanity/key")
-        return data.get("key") if data else None
-
-    async def _cnv_converter(self, link: str, video: bool) -> Optional[str]:
-        async with aiohttp.ClientSession(headers=HEADERS, trust_env=False) as session:
-            api_key = await self._get_cnv_key(session)
-            if not api_key:
-                logger.error("CNV: Could not fetch API Key")
-                return None
-
-            fmt = "mp4" if video else "mp3"
-            quality = "360" if video else "64"
-            
-            payload = {
-                "link": link,
-                "format": fmt,
-                "audioBitrate": "64" if video else quality,
-                "videoQuality": quality if video else "360",
-                "filenameStyle": "pretty",
-                "vCodec": "h264"
-            }
-
-            headers = {**HEADERS, "key": api_key}
-            data = await self._try_request(session, "POST", "https://cnv.cx/v2/converter", data=payload, headers=headers)
-            
-            if data and data.get("url"):
-                return data["url"]
-            
-            logger.error(f"CNV: Conversion returned no URL. Response: {data}")
-            return None
-
-    async def _get_download_url(self, link: str, video: bool) -> Optional[str]:
-        # 1. Primary: CNV.cx (User Requested Method)
-        direct_url = await self._cnv_converter(link, video)
-        if direct_url:
-            return direct_url
-            
-        return None
+    # --- New Hansaka API Logic ---
 
     async def download(self, video_id: str, video: bool = False) -> Optional[str]:
         # Construct the full YouTube URL
         link = self.base + video_id
         
-        # Determine extension based on type
-        # Note: APIs typically return mp3 for audio, whereas yt-dlp defaulted to webm
-        # Both are valid for ffmpeg/pyrogram to upload/stream.
         ext = "mp4" if video else "mp3" 
         filename = f"downloads/{video_id}.{ext}"
 
@@ -172,17 +116,18 @@ class YouTube:
         if Path(filename).exists():
             return filename
 
-        # Get direct URL via APIs
-        direct_url = await self._get_download_url(link, video)
-        
-        if not direct_url:
-            logger.error(f"Failed to get download link for {video_id} from all APIs.")
-            return None
+        # API parameters
+        api_url = "https://hansaka1-ytdl.hf.space/download"
+        payload = {
+            "url": link,
+            "type": "video" if video else "audio"
+        }
 
-        # Download the actual file buffer to local disk
+        # Download logic using the new Hansaka API (returns raw buffer)
         try:
-            async with aiohttp.ClientSession(headers=HEADERS) as session:
-                async with session.get(direct_url) as resp:
+            # Bypassing proxy for internal HF space communication
+            async with aiohttp.ClientSession(headers=HEADERS, trust_env=False) as session:
+                async with session.post(api_url, json=payload, timeout=aiohttp.ClientTimeout(total=300)) as resp:
                     if resp.status == 200:
                         with open(filename, "wb") as f:
                             while True:
@@ -190,11 +135,17 @@ class YouTube:
                                 if not chunk:
                                     break
                                 f.write(chunk)
-                        return filename
+                        
+                        if os.path.getsize(filename) > 0:
+                            return filename
+                        else:
+                            logger.error(f"Downloaded file {filename} is empty.")
+                            os.remove(filename)
                     else:
-                        logger.error(f"Failed to download file content: Status {resp.status}")
+                        error_text = await resp.text()
+                        logger.error(f"Hansaka API Error {resp.status}: {error_text}")
         except Exception as ex:
-            logger.error(f"Download IO failed: {ex}")
+            logger.error(f"Hansaka Download failed: {ex}")
             if os.path.exists(filename):
                 os.remove(filename)
         
