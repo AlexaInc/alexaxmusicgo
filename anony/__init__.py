@@ -15,7 +15,6 @@ if PROXY_URL:
     os.environ["http_proxy"] = PROXY_URL
     os.environ["https_proxy"] = PROXY_URL
     os.environ["all_proxy"] = PROXY_URL
-    logger.info(f"Global Proxy Injected: {PROXY_URL.split('@')[-1]}") # Sanitized log
 
 logging.basicConfig(
     format="[%(asctime)s - %(levelname)s] - %(name)s: %(message)s",
@@ -33,6 +32,9 @@ logging.getLogger("pyrogram").setLevel(logging.ERROR)
 logging.getLogger("pytgcalls").setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
 
+# Log Global Proxy Injection (if any)
+if PROXY_URL:
+    logger.info(f"Global Proxy Injected: {PROXY_URL.split('@')[-1]}")
 
 __version__ = "3.0.1"
 
