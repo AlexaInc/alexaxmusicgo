@@ -31,7 +31,26 @@ async def start_health_server():
     logger.info(f"Health Server started on port {config.PORT}")
 # ---------------------------------------
 
+async def net_probe():
+    import socket
+    if config.PROXY:
+        p = config.PROXY
+        logger.info(f"Checking Proxy Connectivity to {p['hostname']}:{p['port']}...")
+        try:
+            socket.create_connection((p['hostname'], p['port']), timeout=5).close()
+            logger.info("✅ Proxy server is reachable.")
+        except Exception as e:
+            logger.error(f"❌ Proxy server is UNREACHABLE: {e}")
+            
+    logger.info("Checking connection to Telegram (149.154.167.51:443)...")
+    try:
+        socket.create_connection(("149.154.167.51", 443), timeout=5).close()
+        logger.info("✅ Telegram is reachable directly (No proxy needed?).")
+    except Exception as e:
+        logger.warning(f"⚠️ Telegram is NOT reachable directly: {e}")
+
 async def main():
+    await net_probe()
     await db.connect()
     await app.boot()
     await userbot.boot()
