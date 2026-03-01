@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 from pyrogram import enums, types
-from py_yt import Playlist, VideosSearch
+from py_yt import Playlist
+import json
 
 from anony import logger
 from anony.helpers import Track, utils
@@ -63,23 +64,65 @@ class YouTube:
         return None
 
     async def search(self, query: str, m_id: int, video: bool = False) -> Track | None:
-        _search = VideosSearch(query, limit=1)
-        results = await _search.next()
-        if results and results["result"]:
-            data = results["result"][0]
-            return Track(
-                id=data.get("id"),
-                channel_name=data.get("channel", {}).get("name"),
-                duration=data.get("duration"),
-                duration_sec=utils.to_seconds(data.get("duration")),
-                message_id=m_id,
-                title=data.get("title")[:25],
-                thumbnail=data.get("thumbnails", [{}])[-1].get("url").split("?")[0],
-                url=data.get("link"),
-                view_count=data.get("viewCount", {}).get("short"),
-                video=video,
-            )
-        return None
+        url = f"https://www.youtube.com/results?search_query={quote(query)}"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        
+        try:
+            # We use trust_env=True so aiohttp picks up the global HTTP_PROXY injected in __init__.py
+            async with aiohttp.ClientSession(headers=headers, trust_env=True) as session:
+                async with session.get(url, timeout=15) as resp:
+                    text = await resp.text()
+
+                    # YouTube stores the initial data in a javascript variable called ytInitialData
+                    match = re.search(r'var ytInitialData = ({.*?});</script>', text)
+                    if not match:
+                        logger.error("YouTube Search Failed: Could not find ytInitialData")
+                        return None
+                        
+                    data = json.loads(match.group(1))
+                    contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+                    
+                    for item in contents:
+                        if 'videoRenderer' in item:
+                            video_ren = item['videoRenderer']
+                            video_id = video_ren.get('videoId')
+                            if not video_id:
+                                continue
+                                
+                            title = video_ren.get('title', {}).get('runs', [{}])[0].get('text', 'Unknown Title')
+                            
+                            # Extract duration strings (e.g. "3:45")
+                            length_text = video_ren.get('lengthText', {}).get('simpleText', '0:00')
+                            
+                            # Extract thumbnails
+                            thumbnails = video_ren.get('thumbnail', {}).get('thumbnails', [])
+                            thumbnail_url = thumbnails[-1]['url'].split("?")[0] if thumbnails else None
+                            
+                            # Extract channel
+                            channel = video_ren.get('ownerText', {}).get('runs', [{}])[0].get('text', 'Unknown Channel')
+                            
+                            # Extract views
+                            views = video_ren.get('viewCountText', {}).get('simpleText', '0 views').split(' ')[0]
+                            
+                            return Track(
+                                id=video_id,
+                                channel_name=channel[:25],
+                                duration=length_text,
+                                duration_sec=utils.to_seconds(length_text),
+                                message_id=m_id,
+                                title=title[:25],
+                                thumbnail=thumbnail_url,
+                                url=f"https://www.youtube.com/watch?v={video_id}",
+                                view_count=views,
+                                video=video,
+                            )
+            return None
+        except Exception as e:
+            logger.error(f"Custom YouTube search failed: {e}")
+            return None
 
     async def playlist(self, limit: int, user: str, url: str, video: bool) -> list[Track | None]:
         tracks = []
