@@ -13,6 +13,7 @@ from typing import Optional, Union
 from pyrogram import enums, types
 from py_yt import Playlist
 import json
+import traceback
 from aiohttp_socks import ProxyConnector
 
 from anony import config, logger
@@ -72,7 +73,6 @@ class YouTube:
         }
         
         connector = None
-        proxy_url = None
         
         if config.PROXY:
             # Build URL string from the config dict
@@ -85,15 +85,13 @@ class YouTube:
             auth = f"{_user}:{_pass}@" if _user and _pass else ""
             full_proxy_url = f"{_schema}://{auth}{_host}:{_port}"
             
-            if _schema in ["socks4", "socks5"]:
-                connector = ProxyConnector.from_url(full_proxy_url)
-            else:
-                proxy_url = full_proxy_url
+            # Use ProxyConnector for both HTTP and SOCKS proxies uniformly
+            connector = ProxyConnector.from_url(full_proxy_url)
         
         try:
-            # Pass connector if socks, pass proxy_url if http. Disable SSL to prevent certificate errors on HF proxy
-            async with aiohttp.ClientSession(headers=headers, connector=connector, trust_env=True) as session:
-                async with session.get(url, timeout=15, proxy=proxy_url, ssl=False) as resp:
+            # Pass connector for the proxy. Disable SSL to prevent certificate errors on HF proxy
+            async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
+                async with session.get(url, timeout=15, ssl=False) as resp:
                     text = await resp.text()
 
                     # YouTube stores the initial data in a javascript variable called ytInitialData
@@ -141,7 +139,7 @@ class YouTube:
                             )
             return None
         except Exception as e:
-            logger.error(f"Custom YouTube search failed: {e}")
+            logger.error(f"Custom YouTube search failed: {type(e).__name__} - {e}\n{traceback.format_exc()}")
             return None
 
     async def playlist(self, limit: int, user: str, url: str, video: bool) -> list[Track | None]:
