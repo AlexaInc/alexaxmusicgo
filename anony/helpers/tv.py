@@ -58,7 +58,7 @@ def channel_markup(category, page=1):
     
     for ch in current_channels:
         # Two columns for channels
-        if len(keyboard) > 0 and len(keyboard[-1]) < 2 and keyboard[-1] is not nav_row and keyboard[-1][0].text != "🔙 Back to Categories":
+        if len(keyboard) > 0 and len(keyboard[-1]) < 2:
             keyboard[-1].append(InlineKeyboardButton(f"📺 {ch['title']}", callback_data=f"tv_ch:{ch['id']}"))
         else:
             keyboard.append([InlineKeyboardButton(f"📺 {ch['title']}", callback_data=f"tv_ch:{ch['id']}")])

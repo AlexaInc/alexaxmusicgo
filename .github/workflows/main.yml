@@ -1,0 +1,41 @@
+name: Production Deploy to HF
+on:
+  push:
+    branches: [main]
+
+# Add this block to fix the "Resource not accessible" error
+permissions:
+  deployments: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start GitHub Deployment
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: Production
+
+      - name: Trigger HF Factory Reboot
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer $HF_TOKEN" \
+          "https://huggingface.co/api/spaces/alexainc/alexamusic/restart?factory=true"
+
+      - name: Update Deployment Status
+        uses: bobheadxi/deployments@v1
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          # Use the explicit string "Production" to avoid the "Input required" error
+          env: Production
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          env_url: https://alexainc-alexamusic.hf.space/
