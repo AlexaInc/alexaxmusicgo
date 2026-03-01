@@ -54,4 +54,4 @@ class Thumbnail:
             os.remove(temp)
             return output
         except:
-            config.DEFAULT_THUMB
+            return config.DEFAULT_THUMB

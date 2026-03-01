@@ -324,7 +324,9 @@ async def tv_channel_callback(_, query: types.CallbackQuery):
             reply_markup=query.message.reply_markup
         )
     except Exception as e:
-        await query.message.reply_text(f"❌ Error switching station: {e}")
+        import traceback
+        traceback.print_exc()
+        await query.message.reply_text(f"❌ Error switching station: {type(e).__name__} - {e}")
 
 
 
