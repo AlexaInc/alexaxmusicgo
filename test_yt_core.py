@@ -7,11 +7,11 @@ async def test_search():
     
     if track:
         print("Success!")
-        print(f"Title: {track.title}")
+        print(f"Title: {track.title.encode('utf-8', 'ignore').decode('utf-8')}")
         print(f"Duration: {track.duration} ({track.duration_sec}s)")
         print(f"URL: {track.url}")
         print(f"Thumb: {track.thumbnail}")
-        print(f"Channel: {track.channel_name}")
+        print(f"Channel: {track.channel_name.encode('utf-8', 'ignore').decode('utf-8')}")
         print(f"Views: {track.view_count}")
     else:
         print("Failed to find track.")

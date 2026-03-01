@@ -30,4 +30,4 @@ async def test_search(query: str):
         print(f"API Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(test_search("dana danath"))
+    asyncio.run(test_search("Lana Del Rey Summertime Sadness"))

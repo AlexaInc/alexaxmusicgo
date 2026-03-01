@@ -205,31 +205,30 @@ async def radio_callback_handler(_, query: types.CallbackQuery):
     name, radio_url = links[data]
     await query.answer(f"Switching to {name}...", show_alert=False)
 
-    class RadioMedia:
-        def __init__(self):
-            self.id = "radio_live"
-            self.title = f"Radio: {name}"
-            self.duration = "Live"
-            self.duration_sec = 0
-            self.url = radio_url
-            self.file_path = radio_url
-            self.video = False
-            self.user = user_mention
-            self.message_id = query.message.id
+    from anony.helpers import Track
+    from anony import config
+    
+    media_obj = Track(
+        id="radio_live",
+        channel_name="Live Radio",
+        duration="Live",
+        duration_sec=0,
+        title=f"Radio: {name}",
+        url=radio_url,
+        file_path=radio_url,
+        message_id=query.message.id,
+        thumbnail=config.DEFAULT_THUMB,
+        user=user_mention,
+        view_count="Live",
+        video=False
+    )
+    media_obj.stream_type = "live"
 
     try:
-
-        queue.force_add(chat_id, RadioMedia())
-        
-
-        try:
-            await anon.play_media(chat_id=chat_id, message=query.message, media=RadioMedia())
-        except AttributeError as e:
-            if "chat_id" in str(e):
-                pass
-            else:
-                raise e
-
+        # Switch the stream
+        await anon.play_media(chat_id=chat_id, message=query.message, media=media_obj)
+        queue.force_add(chat_id, media_obj)
+        # Edit the message text while keeping the persistent buttons
         await query.edit_message_text(
             f"📡 <b>Now Streaming:</b> <code>{name}</code>\n"
             f"👤 <b>Requested by:</b> {user_mention}\n\n"
@@ -293,25 +292,28 @@ async def tv_channel_callback(_, query: types.CallbackQuery):
     if not stream_url:
         return await query.message.reply_text("❌ Failed to fetch the stream URL. Please try again later.")
 
-    class TVMedia:
-        def __init__(self):
-            self.id = "tv_live"
-            self.title = f"TV: {target_channel['title']}"
-            self.duration = "Live"
-            self.duration_sec = 0
-            self.url = stream_url
-            self.file_path = stream_url
-            self.video = True
-            self.user = user_mention
-            self.message_id = query.message.id
-            self.stream_type = "live"
-            
-            # Low quality setting flag (implementation depends on anon.play_media / py-tgcalls)
-            # Setting it here indicates our preference
-            self.quality = "low" 
+    from anony.helpers import Track
+    from anony import config
+    
+    media_obj = Track(
+        id="tv_live",
+        channel_name="Live TV",
+        duration="Live",
+        duration_sec=0,
+        title=f"TV: {target_channel['title']}",
+        url=stream_url,
+        file_path=stream_url,
+        message_id=query.message.id,
+        thumbnail=target_channel.get("thumbnail") or target_channel.get("channelImage") or config.DEFAULT_THUMB,
+        user=user_mention,
+        view_count="Live",
+        video=True
+    )
+    # Hint to py-tgcalls for low quality if using an overloaded approach
+    media_obj.stream_type = "live"
+    media_obj.quality = "low"
 
     try:
-        media_obj = TVMedia()
         # Switch the stream
         await anon.play_media(chat_id=chat_id, message=query.message, media=media_obj)
         queue.force_add(chat_id, media_obj)

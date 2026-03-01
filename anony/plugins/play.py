@@ -30,6 +30,21 @@ async def tv_command_handler(
     )
 
 
+@app.on_message(filters.command("radio") & filters.group & ~app.bl_users)
+@lang.language()
+@checkUB
+async def radio_command_handler(
+    _, 
+    m: types.Message, 
+    force: bool = False, 
+    video: bool = False, 
+    url: str = None
+):
+    await m.reply_text(
+        "📻 <b>Sri Lanka Live Radio Menu</b>\nSelect a station below to start streaming 24/7:",
+        reply_markup=radio_markup(1)
+    )
+
 
 @app.on_message(
     filters.command(["play", "playforce", "vplay", "vplayforce"])
@@ -53,19 +68,36 @@ async def play_hndlr(
     if m.command[0] == "247":
         sent = await m.reply_text("📡 <b>Connecting to NuWaaV Radio (24/7 K-Pop)...</b>")
         
-        class RadioMedia:
-            def __init__(self):
-                self.id = "nuwaav_radio"
-                self.title = "NuWaaV Radio (K-Pop 24/7)"
-                self.duration = "Live"
-                self.duration_sec = 0  # Pass limit checks
-                self.url = "https://nuwaavradio.com/"
-                self.file_path = "https://streaming.live365.com/a46701"
-                self.video = False
-                self.user = mention
-                self.message_id = sent.id
+        from anony.helpers import Track
+        
+        file = Track(
+            id="nuwaav_radio",
+            channel_name="Live Radio",
+            duration="Live",
+            duration_sec=0,
+            title="NuWaaV Radio (K-Pop 24/7)",
+            url="https://nuwaav.com/radio/8020/radio.mp3",
+            file_path="https://nuwaav.com/radio/8020/radio.mp3",
+            message_id=m.id,
+            thumbnail=config.DEFAULT_THUMB,
+            user=mention,
+            view_count="Live",
+            video=False
+        )
+        file.stream_type = "live"
 
-        file = RadioMedia()
+        try:
+            # Bypass queue check for forced radio
+            await anon.play_media(chat_id=m.chat.id, message=sent, media=file)
+            queue.force_add(m.chat.id, file)
+            
+            await sent.edit_text(
+                "📡 <b>NuWaaV Radio (24/7 K-Pop) is now streaming!</b>"
+            )
+            return # Exit after starting radio
+        except Exception as e:
+            await sent.edit_text(f"Failed to start NuWaaV Radio: {e}")
+            return
     
     # 2. REGULAR PLAY LOGIC
     else:

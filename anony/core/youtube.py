@@ -66,44 +66,33 @@ class YouTube:
         return None
 
     async def search(self, query: str, m_id: int, video: bool = False) -> Track | None:
-        url = "https://search.nnmn.store/"
+        url = "https://hansaka1-ytdl.hf.space/search"
         headers = {
             "accept": "*/*",
             "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-            "origin": "https://v6.www-y2mate.com",
-            "referer": "https://v6.www-y2mate.com/",
+            "origin": "https://hansaka1-ytdl.hf.space",
+            "referer": "https://hansaka1-ytdl.hf.space/",
+            "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
         }
         
-        form_data = aiohttp.FormData()
-        form_data.add_field("search_query", query)
-        
-        connector = None
-        
-        if config.PROXY:
-            # Build URL string from the config dict
-            _schema = config.PROXY.get("scheme", "http")
-            _user = config.PROXY.get("username", "")
-            _pass = config.PROXY.get("password", "")
-            _host = config.PROXY.get("hostname", "")
-            _port = config.PROXY.get("port", "")
-            
-            auth = f"{_user}:{_pass}@" if _user and _pass else ""
-            full_proxy_url = f"{_schema}://{auth}{_host}:{_port}"
-            
-            # Use ProxyConnector for both HTTP and SOCKS proxies uniformly
-            connector = ProxyConnector.from_url(full_proxy_url)
-        
         try:
-            # Pass connector for the proxy. Disable SSL to prevent certificate errors on HF proxy
-            async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
-                async with session.post(url, data=form_data, timeout=15, ssl=False) as resp:
+            # Connect directly to the external search API without proxy. 
+            # The API bypasses YouTube blocks for us.
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.post(url, json={"query": query}, timeout=15) as resp:
                     if resp.status == 200:
                         data = await resp.json()
+                        results = data.get("results", [])
                         
-                        if data and isinstance(data, list) and len(data) > 0:
+                        if results and isinstance(results, list) and len(results) > 0:
                             # Take the first search result
-                            item = data[0]
+                            item = results[0]
                             video_id = item.get("videoId")
                             
                             if video_id:
