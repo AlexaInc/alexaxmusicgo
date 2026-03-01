@@ -70,11 +70,15 @@ class TgCall(PyTgCalls):
             media_path=media.file_path,
             audio_parameters=types.AudioQuality.LOW,
             video_parameters=types.VideoQuality.SD_360p,
-            audio_flags=types.MediaStream.Flags.REQUIRED,
+            audio_flags=(
+                types.MediaStream.Flags.IGNORE
+                if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
+                else types.MediaStream.Flags.REQUIRED
+            ),
             video_flags=(
                 types.MediaStream.Flags.IGNORE
-                if "live365" in str(media.file_path) 
-                else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE)
+                if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
+                else (types.MediaStream.Flags.IGNORE if getattr(media, "id", "") == "tv_live" else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE))
             ),
             ffmpeg_parameters=final_ffmpeg,
             headers=media_headers
