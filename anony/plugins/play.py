@@ -12,69 +12,21 @@ from anony.helpers.radio import radio_markup
 
 
 
-def tv_markup():
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("📺 Hiru TV", callback_data="tv_1"),
-            InlineKeyboardButton("📺 kiddo", callback_data="tv_2"),
-            InlineKeyboardButton("📺 Horror TV", callback_data="tv_3")
-        ],
-        [
-            InlineKeyboardButton("📺 BEST ACTION TV", callback_data="tv_4"),
-            InlineKeyboardButton("📺 Swarnawahini", callback_data="tv_5"),
-            InlineKeyboardButton("📺 Cartoon TV", callback_data="tv_6")
-        ],
-        [
-            InlineKeyboardButton("📺 JTBC", callback_data="tv_7"),
-            InlineKeyboardButton("📺 TVN", callback_data="tv_8"),
-            InlineKeyboardButton("📺 KRCN", callback_data="tv_9")
-        ],
-        [InlineKeyboardButton("❌ Close Menu", callback_data="help close")]
-    ])
-
-def playlist_to_queue(chat_id: int, tracks: list) -> str:
-    text = "<blockquote expandable>"
-    for track in tracks:
-        pos = queue.add(chat_id, track)
-        text += f"<b>{pos}.</b> {track.title}\n"
-    text = text[:1948] + "</blockquote>"
-    return text
-
-
-@app.on_message(filters.command("radio") & filters.group & ~app.bl_users)
-@lang.language()
-@checkUB
-async def radio_command_handler(
-    _, 
-    m: types.Message, 
-    force: bool = False, 
-    video: bool = False, 
-    url: str = None
-):
-    # We accept force, video, and url to stop the TypeError, 
-    # but we only need 'm' to send the button menu.
-    await m.reply_text(
-        "📻 <b>Sri Lanka Live Radio Menu</b>\nSelect a station below to start streaming 24/7:",
-        reply_markup=radio_markup(1)
-    )
-
-
+from anony.helpers.tv import category_markup
 
 @app.on_message(filters.command("tv") & filters.group & ~app.bl_users)
 @lang.language()
 @checkUB
-async def radio_command_handler(
+async def tv_command_handler(
     _, 
     m: types.Message, 
     force: bool = False, 
     video: bool = False, 
     url: str = None
 ):
-    # We ignore force, video, and url because it's a radio command, 
-    # but we must include them in the arguments to avoid the error.
     await m.reply_text(
-        "📺 <b>TV Station Selection</b>\nChoose a station to start streaming 24/7:",
-        reply_markup=tv_markup()
+        "📺 <b>TV Station Categories</b>\nChoose a category to find a station:",
+        reply_markup=category_markup()
     )
 
 

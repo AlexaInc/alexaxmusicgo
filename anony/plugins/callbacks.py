@@ -246,51 +246,79 @@ async def radio_callback_handler(_, query: types.CallbackQuery):
 
 
 
-@app.on_callback_query(filters.regex(r"^tv_") & ~app.bl_users)
+from anony.helpers.tv import category_markup, channel_markup, fetch_stream_url, load_channels
+
+@app.on_callback_query(filters.regex("tv_home") & ~app.bl_users)
 @lang.language()
-async def radio_callback_handler(_, query: types.CallbackQuery):
-    callback_data = query.data
+async def tv_home_callback(_, query: types.CallbackQuery):
+    await query.edit_message_text(
+        "📺 <b>TV Station Categories</b>\nChoose a category to find a station:",
+        reply_markup=category_markup()
+    )
+
+@app.on_callback_query(filters.regex(r"^tv_cat:") & ~app.bl_users)
+@lang.language()
+async def tv_category_callback(_, query: types.CallbackQuery):
+    category = query.data.split(":")[1]
+    await query.edit_message_text(
+        f"📺 <b>Category: {category}</b>\nChoose a station:",
+        reply_markup=channel_markup(category, 1)
+    )
+
+@app.on_callback_query(filters.regex(r"^tv_page:") & ~app.bl_users)
+@lang.language()
+async def tv_page_callback(_, query: types.CallbackQuery):
+    _, category, page = query.data.split(":")
+    await query.edit_message_text(
+        f"📺 <b>Category: {category}</b>\nChoose a station (Page {page}):",
+        reply_markup=channel_markup(category, int(page))
+    )
+
+@app.on_callback_query(filters.regex(r"^tv_ch:") & ~app.bl_users)
+@lang.language()
+async def tv_channel_callback(_, query: types.CallbackQuery):
+    channel_id = query.data.split(":")[1]
     chat_id = query.message.chat.id
     user_mention = query.from_user.mention
-
-    # Mapping IDs back to the long URLs
-    links = {
-        "tv_1": ("Hiru tv", "https://tv.hiruhost.com:1936/8012/8012/playlist.m3u8"),
-        "tv_2": ("kiddo", "https://streams2.sofast.tv/ptnr-yupptv/title-KIDDO-ENG_yupptv/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/5bcf9d24-04f2-401d-a93f-7af54f29461a/cd64c196-a6a2-4c62-a280-82dc6cf00df7/0.m3u8"),
-        "tv_3": ("Horror TV", "https://streams2.sofast.tv/ptnr-yupptv/title-HORROR-TV-ENG_yupptv/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/93dc292b-cbcf-4988-ab97-94feced4c14b/685a0534-52ff-4a53-9325-e2f98b434cdd/0.m3u8"),
-        "tv_4": ("BEST ACTION TV", "https://streams2.sofast.tv/ptnr-yupptv/title-BEST_ACTION_YUPPTV/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/9a4a5412-ca99-48d3-9013-d1811b95b9d2/4720c24f-b585-47b6-98f2-7e907e2923d6/0.m3u8"),
-        "tv_5": ("Swarnawahini", "https://jk3lz8xklw79-hls-live.5centscdn.com/live/6226f7cbe59e99a90b5cef6f94f966fd.sdp/playlist.m3u8"),
-        "tv_6": ("Cartoon TV", "https://streams2.sofast.tv/ptnr-yupptv/title-CARTOON-TV-CLASSICS-ENG_yupptv/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/d5543c06-5122-49a7-9662-32187f48aa2c/eecead33-3f35-4b1d-8c2d-0ebdcfb4fdeb/0.m3u8"),
-        "tv_7": ("JTBC korea", "https://cdn.inteltelevision.com/krcn/107-jtbc/playlist.m3u8?t=1767626918&token=84e4e069ed365be427fef4d1f62dbb59"),
-        "tv_8": ("TVN korea", "https://pull.radartv.in/krcn/106-tvn/playlist.m3u8"),
-        "tv_9": ("KRCN korea", "https://cdn.inteltelevision.com/krcn/108-tvzaos/playlist.m3u8?t=1767627310&token=50dae640a746649cb38eed7e912d6cac")
-    }
-
-    if callback_data not in links:
+    
+    channels = load_channels()
+    target_channel = next((c for c in channels if c["id"] == channel_id), None)
+    
+    if not target_channel:
         return await query.answer("Unknown Station!", show_alert=True)
+        
+    await query.answer(f"Fetching {target_channel['title']} stream...", show_alert=False)
+    
+    stream_url = await fetch_stream_url(target_channel["manifest"])
+    if not stream_url:
+        return await query.message.reply_text("❌ Failed to fetch the stream URL. Please try again later.")
 
-    name, radio_url = links[callback_data]
-    await query.answer(f"Switching to {name}...", show_alert=False)
-
-    class RadioMedia:
+    class TVMedia:
         def __init__(self):
-            self.id = "radio_live"
-            self.title = f"Radio: {name}"
+            self.id = "tv_live"
+            self.title = f"TV: {target_channel['title']}"
             self.duration = "Live"
             self.duration_sec = 0
-            self.url = radio_url
-            self.file_path = radio_url
+            self.url = stream_url
+            self.file_path = stream_url
             self.video = True
             self.user = user_mention
             self.message_id = query.message.id
+            self.stream_type = "live"
+            
+            # Low quality setting flag (implementation depends on anon.play_media / py-tgcalls)
+            # Setting it here indicates our preference
+            self.quality = "low" 
 
     try:
+        media_obj = TVMedia()
         # Switch the stream
-        await anon.play_media(chat_id=chat_id, message=query.message, media=RadioMedia())
-        queue.force_add(chat_id, RadioMedia())
-        # Edit the message text while keeping the persistent buttons
+        await anon.play_media(chat_id=chat_id, message=query.message, media=media_obj)
+        queue.force_add(chat_id, media_obj)
+        
         await query.edit_message_text(
-            f"📡 <b>Now Streaming:</b> {name}\nRequested by: {user_mention}\n\nSelect another station to switch:",
+
+            f"📡 <b>Now Streaming:</b> {target_channel['title']} (Low Quality)\nRequested by: {user_mention}\n\nSelect another station to switch:",
             reply_markup=query.message.reply_markup
         )
     except Exception as e:
