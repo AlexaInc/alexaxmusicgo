@@ -317,6 +317,10 @@ async def tv_channel_callback(_, query: types.CallbackQuery):
         "Referer": "https://viu.lk/"
     }
     try:
+        from anony import logger
+        logger.info(f"📺 TV Playback URL for {target_channel['title']}: {stream_url}")
+        print(f"📺 TV Playback URL for {target_channel['title']}: {stream_url}")
+
         await anon.play_media(chat_id=chat_id, message=query.message, media=media_obj)
         queue.force_add(chat_id, media_obj)
         
