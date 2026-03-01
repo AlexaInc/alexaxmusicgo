@@ -10,3 +10,4 @@ python-dotenv~=1.1.1
 yt-dlp[default]>=2025.11.12
 pysocks
 httpx>=0.24.1
+aiohttp_socks>=0.8.4

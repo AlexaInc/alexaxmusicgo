@@ -13,8 +13,9 @@ from typing import Optional, Union
 from pyrogram import enums, types
 from py_yt import Playlist
 import json
+from aiohttp_socks import ProxyConnector
 
-from anony import logger
+from anony import config, logger
 from anony.helpers import Track, utils
 
 # New headers matching user's JS configuration
@@ -70,10 +71,29 @@ class YouTube:
             'Accept-Language': 'en-US,en;q=0.9',
         }
         
+        connector = None
+        proxy_url = None
+        
+        if config.PROXY:
+            # Build URL string from the config dict
+            _schema = config.PROXY.get("scheme", "http")
+            _user = config.PROXY.get("username", "")
+            _pass = config.PROXY.get("password", "")
+            _host = config.PROXY.get("hostname", "")
+            _port = config.PROXY.get("port", "")
+            
+            auth = f"{_user}:{_pass}@" if _user and _pass else ""
+            full_proxy_url = f"{_schema}://{auth}{_host}:{_port}"
+            
+            if _schema in ["socks4", "socks5"]:
+                connector = ProxyConnector.from_url(full_proxy_url)
+            else:
+                proxy_url = full_proxy_url
+        
         try:
-            # We use trust_env=True so aiohttp picks up the global HTTP_PROXY injected in __init__.py
-            async with aiohttp.ClientSession(headers=headers, trust_env=True) as session:
-                async with session.get(url, timeout=15) as resp:
+            # Pass connector if socks, pass proxy_url if http. Disable SSL to prevent certificate errors on HF proxy
+            async with aiohttp.ClientSession(headers=headers, connector=connector, trust_env=True) as session:
+                async with session.get(url, timeout=15, proxy=proxy_url, ssl=False) as resp:
                     text = await resp.text()
 
                     # YouTube stores the initial data in a javascript variable called ytInitialData
