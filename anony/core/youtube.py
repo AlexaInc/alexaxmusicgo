@@ -66,11 +66,17 @@ class YouTube:
         return None
 
     async def search(self, query: str, m_id: int, video: bool = False) -> Track | None:
-        url = f"https://www.youtube.com/results?search_query={quote(query)}"
+        url = "https://search.nnmn.store/"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
+            "accept": "*/*",
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+            "origin": "https://v6.www-y2mate.com",
+            "referer": "https://v6.www-y2mate.com/",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
         }
+        
+        form_data = aiohttp.FormData()
+        form_data.add_field("search_query", query)
         
         connector = None
         
@@ -91,52 +97,37 @@ class YouTube:
         try:
             # Pass connector for the proxy. Disable SSL to prevent certificate errors on HF proxy
             async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
-                async with session.get(url, timeout=15, ssl=False) as resp:
-                    text = await resp.text()
-
-                    # YouTube stores the initial data in a javascript variable called ytInitialData
-                    match = re.search(r'var ytInitialData = ({.*?});</script>', text)
-                    if not match:
-                        logger.error("YouTube Search Failed: Could not find ytInitialData")
-                        return None
+                async with session.post(url, data=form_data, timeout=15, ssl=False) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
                         
-                    data = json.loads(match.group(1))
-                    contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
-                    
-                    for item in contents:
-                        if 'videoRenderer' in item:
-                            video_ren = item['videoRenderer']
-                            video_id = video_ren.get('videoId')
-                            if not video_id:
-                                continue
+                        if data and isinstance(data, list) and len(data) > 0:
+                            # Take the first search result
+                            item = data[0]
+                            video_id = item.get("videoId")
+                            
+                            if video_id:
+                                thumbnails = item.get("thumbnail", [])
+                                thumbnail_url = thumbnails[-1]['url'].split("?")[0] if thumbnails else None
                                 
-                            title = video_ren.get('title', {}).get('runs', [{}])[0].get('text', 'Unknown Title')
-                            
-                            # Extract duration strings (e.g. "3:45")
-                            length_text = video_ren.get('lengthText', {}).get('simpleText', '0:00')
-                            
-                            # Extract thumbnails
-                            thumbnails = video_ren.get('thumbnail', {}).get('thumbnails', [])
-                            thumbnail_url = thumbnails[-1]['url'].split("?")[0] if thumbnails else None
-                            
-                            # Extract channel
-                            channel = video_ren.get('ownerText', {}).get('runs', [{}])[0].get('text', 'Unknown Channel')
-                            
-                            # Extract views
-                            views = video_ren.get('viewCountText', {}).get('simpleText', '0 views').split(' ')[0]
-                            
-                            return Track(
-                                id=video_id,
-                                channel_name=channel[:25],
-                                duration=length_text,
-                                duration_sec=utils.to_seconds(length_text),
-                                message_id=m_id,
-                                title=title[:25],
-                                thumbnail=thumbnail_url,
-                                url=f"https://www.youtube.com/watch?v={video_id}",
-                                view_count=views,
-                                video=video,
-                            )
+                                length_text = item.get("duration", "0:00")
+                                viewCountText = item.get("shortViewCount", "0 views").split(" ")[0]
+                                
+                                return Track(
+                                    id=video_id,
+                                    channel_name=item.get("channelName", "Unknown Channel")[:25],
+                                    duration=length_text,
+                                    duration_sec=utils.to_seconds(length_text),
+                                    message_id=m_id,
+                                    title=item.get("title", "Unknown Title")[:25],
+                                    thumbnail=thumbnail_url,
+                                    url=f"https://www.youtube.com/watch?v={video_id}",
+                                    view_count=viewCountText,
+                                    video=video,
+                                )
+                    else:
+                        logger.error(f"External API failed with status {resp.status}")
+                        
             return None
         except Exception as e:
             logger.error(f"Custom YouTube search failed: {type(e).__name__} - {e}\n{traceback.format_exc()}")
