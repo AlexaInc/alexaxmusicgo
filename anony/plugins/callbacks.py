@@ -312,6 +312,11 @@ async def tv_channel_callback(_, query: types.CallbackQuery):
     # Hint to py-tgcalls for low quality if using an overloaded approach
     media_obj.stream_type = "live"
     media_obj.quality = "low"
+    media_obj.headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "Referer": "https://viu.lk/"
+    }
+    media_obj.ffmpeg_parameters = "-base -start -analyzeduration 1500000 -probesize 1500000"
 
     try:
         # Switch the stream

@@ -47,6 +47,8 @@ class Config:
             import os
             os.environ["http_proxy"] = self.PROXY_URL
             os.environ["https_proxy"] = self.PROXY_URL
+            os.environ["all_proxy"] = self.PROXY_URL
+            os.environ["ALL_PROXY"] = self.PROXY_URL
             
         self.PROXY = self._parse_proxy(self.PROXY_URL)
 
