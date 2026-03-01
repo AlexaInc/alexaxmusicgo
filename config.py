@@ -44,6 +44,9 @@ class Config:
         self.PROXY_URL = getenv("PROXY_URL")
         if self.PROXY_URL:
             self.PROXY_URL = self.PROXY_URL.strip().strip("'").strip('"')
+            import os
+            os.environ["http_proxy"] = self.PROXY_URL
+            os.environ["https_proxy"] = self.PROXY_URL
             
         self.PROXY = self._parse_proxy(self.PROXY_URL)
 
