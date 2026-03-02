@@ -56,8 +56,6 @@ class TgCall(PyTgCalls):
             return await message.edit_text(_lang["error_no_file"].format(config.SUPPORT_CHAT))
 
         media_headers = getattr(media, "headers", None)
-        if not media_headers:
-            media_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
         
         media_ffmpeg = getattr(media, "ffmpeg_parameters", "")
         final_ffmpeg = f"-ss {seek_time}" if seek_time > 1 else ""
@@ -66,20 +64,25 @@ class TgCall(PyTgCalls):
         if not final_ffmpeg:
             final_ffmpeg = None
 
+        a_flag = (
+            types.MediaStream.Flags.IGNORE
+            if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
+            else types.MediaStream.Flags.REQUIRED
+        )
+        v_flag = (
+            types.MediaStream.Flags.IGNORE
+            if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
+            else (types.MediaStream.Flags.IGNORE if getattr(media, "id", "") == "tv_live" else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE))
+        )
+        logger.info(f"[TV_DEBUG] stream_type is: {getattr(media, 'stream_type', 'none')}")
+        logger.info(f"[TV_DEBUG] Setting audio_flags to: {a_flag}, video_flags to: {v_flag}")
+
         stream = types.MediaStream(
             media_path=media.file_path,
             audio_parameters=types.AudioQuality.LOW,
             video_parameters=types.VideoQuality.SD_360p,
-            audio_flags=(
-                types.MediaStream.Flags.IGNORE
-                if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
-                else types.MediaStream.Flags.REQUIRED
-            ),
-            video_flags=(
-                types.MediaStream.Flags.IGNORE
-                if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
-                else (types.MediaStream.Flags.IGNORE if getattr(media, "id", "") == "tv_live" else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE))
-            ),
+            audio_flags=a_flag,
+            video_flags=v_flag,
             ffmpeg_parameters=final_ffmpeg,
             headers=media_headers
         )
