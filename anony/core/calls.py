@@ -15,17 +15,17 @@ import asyncio
 _original_check_stream = pytgcalls.ffmpeg.check_stream
 
 async def _fast_check_stream(file_path: str, *args, **kwargs):
-    if "live365" in str(file_path):
-        return None, None
-    try:
-        # Give ffprobe a very short 3-second timeout so it doesn't freeze Voice Chats
-        return await asyncio.wait_for(_original_check_stream(file_path, *args, **kwargs), timeout=3.0)
-    except Exception as e:
-        logger.warning(f"[FFPROBE BYPASS] Bypassing stream check for {file_path} due to: {type(e).__name__}")
-        return None, None
+    if "live365" in str(file_path) or "m3u8" in str(file_path).lower() or ".mpd" in str(file_path).lower():
+        from pytgcalls.exceptions import LiveStreamFound
+        logger.warning(f"[FFPROBE FAST PASS] Forcing LiveStreamFound for {file_path}")
+        raise LiveStreamFound("Bypassed Stream Check for Live Media")
+    
+    return await _original_check_stream(file_path, *args, **kwargs)
 
 pytgcalls.ffmpeg.check_stream = _fast_check_stream
 # --------------------------------------------------------------------------
+
+
 
 
 class TgCall(PyTgCalls):
