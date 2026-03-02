@@ -10,9 +10,10 @@ from anony.helpers import Media, Track, buttons, thumb
 
 # --- MONKEY PATCH: Bypass PyTgCalls FFprobe timeout for TV/Live streams ---
 import pytgcalls.ffmpeg
+import pytgcalls.types.stream.media_stream
 import asyncio
 
-_original_check_stream = pytgcalls.ffmpeg.check_stream
+_original_check_stream = pytgcalls.types.stream.media_stream.check_stream
 
 async def _fast_check_stream(file_path: str, *args, **kwargs):
     if "live365" in str(file_path) or "m3u8" in str(file_path).lower() or ".mpd" in str(file_path).lower():
@@ -22,6 +23,7 @@ async def _fast_check_stream(file_path: str, *args, **kwargs):
     
     return await _original_check_stream(file_path, *args, **kwargs)
 
+pytgcalls.types.stream.media_stream.check_stream = _fast_check_stream
 pytgcalls.ffmpeg.check_stream = _fast_check_stream
 # --------------------------------------------------------------------------
 
