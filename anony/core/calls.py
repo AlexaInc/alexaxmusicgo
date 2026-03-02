@@ -8,6 +8,25 @@ from pytgcalls.pytgcalls_session import PyTgCallsSession
 from anony import app, config, db, lang, logger, queue, userbot, yt
 from anony.helpers import Media, Track, buttons, thumb
 
+# --- MONKEY PATCH: Bypass PyTgCalls FFprobe timeout for TV/Live streams ---
+import pytgcalls.ffmpeg
+import asyncio
+
+_original_check_stream = pytgcalls.ffmpeg.check_stream
+
+async def _fast_check_stream(file_path: str, *args, **kwargs):
+    if "live365" in str(file_path):
+        return None, None
+    try:
+        # Give ffprobe a very short 3-second timeout so it doesn't freeze Voice Chats
+        return await asyncio.wait_for(_original_check_stream(file_path, *args, **kwargs), timeout=3.0)
+    except Exception as e:
+        logger.warning(f"[FFPROBE BYPASS] Bypassing stream check for {file_path} due to: {type(e).__name__}")
+        return None, None
+
+pytgcalls.ffmpeg.check_stream = _fast_check_stream
+# --------------------------------------------------------------------------
+
 
 class TgCall(PyTgCalls):
     def __init__(self):
@@ -64,15 +83,11 @@ class TgCall(PyTgCalls):
         if not final_ffmpeg:
             final_ffmpeg = None
 
-        a_flag = (
-            types.MediaStream.Flags.IGNORE
-            if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
-            else types.MediaStream.Flags.REQUIRED
-        )
+        a_flag = types.MediaStream.Flags.REQUIRED
         v_flag = (
             types.MediaStream.Flags.IGNORE
-            if ("live365" in str(media.file_path) or "live" in getattr(media, "stream_type", "")) 
-            else (types.MediaStream.Flags.IGNORE if getattr(media, "id", "") == "tv_live" else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE))
+            if getattr(media, "id", "") == "tv_live"
+            else (types.MediaStream.Flags.AUTO_DETECT if media.video else types.MediaStream.Flags.IGNORE)
         )
         logger.info(f"[TV_DEBUG] stream_type is: {getattr(media, 'stream_type', 'none')}")
         logger.info(f"[TV_DEBUG] Setting audio_flags to: {a_flag}, video_flags to: {v_flag}")
