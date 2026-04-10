@@ -27,6 +27,7 @@ class Bot(pyrogram.Client):
         )
         self.owner = config.OWNER_ID
         self.logger = config.LOGGER_ID
+        self.name = config.MUSIC_BOT_NAME
         self.bl_users = pyrogram.filters.user()
         self.sudoers = pyrogram.filters.user(self.owner)
 
@@ -39,7 +40,7 @@ class Bot(pyrogram.Client):
         """
         await super().start()
         self.id = self.me.id
-        self.name = self.me.first_name
+        # self.name = self.me.first_name
         self.username = self.me.username
         self.mention = self.me.mention
 
