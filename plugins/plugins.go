@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -313,6 +314,9 @@ func RegisterQueue(b *bot.Bot, q *queue.Manager) {
 
 func RegisterActive(b *bot.Bot) {
 	b.Client.OnCommand("active", func(m *telegram.NewMessage) error {
+		if m.Sender == nil {
+			return nil
+		}
 		if !b.IsSudo(m.Sender.ID) {
 			_, _ = m.Reply("❌ <b>Sudo access required for this command.</b>")
 			return nil
@@ -385,6 +389,9 @@ func getReplyUserID(m *telegram.NewMessage) int64 {
 
 func RegisterBlacklist(b *bot.Bot) {
 	b.Client.OnCommand("blacklist", func(m *telegram.NewMessage) error {
+		if m.Sender == nil {
+			return nil
+		}
 		if !b.IsSudo(m.Sender.ID) {
 			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
 			return nil
@@ -400,6 +407,9 @@ func RegisterBlacklist(b *bot.Bot) {
 
 func RegisterBroadcast(b *bot.Bot) {
 	b.Client.OnCommand("broadcast", func(m *telegram.NewMessage) error {
+		if m.Sender == nil {
+			return nil
+		}
 		if !b.IsSudo(m.Sender.ID) {
 			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
 			return nil
@@ -496,6 +506,10 @@ func RegisterLanguage(b *bot.Bot) {
 
 func RegisterSudo(b *bot.Bot) {
 	b.Client.OnCommand("addsudo", func(m *telegram.NewMessage) error {
+		if m.Sender == nil {
+			return nil
+		}
+		log.Printf("[sudo] /addsudo from %d (owner=%d, isSudo=%v)", m.Sender.ID, b.Config.OwnerID, b.IsSudo(m.Sender.ID))
 		if !b.IsSudo(m.Sender.ID) {
 			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
 			return nil
@@ -518,6 +532,9 @@ func RegisterSudo(b *bot.Bot) {
 	})
 
 	b.Client.OnCommand("rmsudo", func(m *telegram.NewMessage) error {
+		if m.Sender == nil {
+			return nil
+		}
 		if !b.IsSudo(m.Sender.ID) {
 			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
 			return nil
