@@ -1,11 +1,15 @@
-# Build Stage - Use Debian (glibc) to be compatible with libntgcalls.so
+# Build Stage
 FROM golang:1.24-bookworm AS builder
 
 ENV GOTOOLCHAIN=auto
 
-# Install build dependencies
+# Install build dependencies INCLUDING dev libraries that libntgcalls.so links against
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git build-essential gcc g++ libstdc++6 \
+    git build-essential gcc g++ \
+    libx11-dev libxrandr-dev libxcomposite-dev libxdamage-dev \
+    libxext-dev libxfixes-dev libxtst-dev libxrender-dev \
+    libglib2.0-dev libgbm-dev libdrm-dev \
+    libgio2.0-cil-dev libdbus-1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,40 +20,38 @@ RUN git init . && \
     git fetch origin master && \
     git checkout master -f
 
-# Copy shared libraries to system path so linker can find them
-RUN cp /app/vendor_src/tgcalls/libntgcalls.so /usr/lib/x86_64-linux-gnu/libntgcalls.so && \
-    ldconfig
+# Make the linker find libntgcalls.so in the vendor directory
+ENV CGO_LDFLAGS="-L/app/vendor_src/tgcalls -lntgcalls -Wl,-rpath=/usr/lib -Wl,--allow-shlib-undefined"
+RUN ldconfig
 
 # Build the binary
 RUN go build -o alexa_music .
 
-# Final Stage - Debian slim for glibc runtime compatibility
+# Final Stage
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
+# Install runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg ca-certificates curl \
-    libglib2.0-0 libx11-6 libxrandr2 libxcomposite1 \
-    libxdamage1 libxext6 libxfixes3 libxtst6 libxrender1 \
-    libdrm2 libgbm1 \
+    libx11-6 libxrandr2 libxcomposite1 libxdamage1 \
+    libxext6 libxfixes3 libxtst6 libxrender1 \
+    libglib2.0-0 libgbm1 libdrm2 \
+    libdbus-1-3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binary
 COPY --from=builder /app/alexa_music .
 
 # Copy shared library
 COPY --from=builder /app/vendor_src/tgcalls/libntgcalls.so /usr/lib/x86_64-linux-gnu/libntgcalls.so
+RUN ldconfig
 
 # Copy assets
 COPY --from=builder /app/assets ./assets
 
-# Expose port (default 7860 for Hugging Face)
 EXPOSE 7860
-
 ENV PORT=7860
-ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 
-# Start command
 CMD ["./alexa_music"]
