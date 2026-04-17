@@ -4,19 +4,8 @@ FROM golang:1.21-alpine AS builder
 # Install build dependencies
 RUN apk add --no-cache git
 
-WORKDIR /app
-
-# Copy dependency files and download
-COPY go.mod go.sum ./
-# If vendor exists, use it
-RUN if [ -d "vendor" ]; then \
-        echo "Using vendor directory"; \
-    else \
-        go mod download; \
-    fi
-
-# Copy source code
-COPY . .
+# Clone the repository
+RUN git clone https://github.com/AlexaInc/alexaxmusicgo.git .
 
 # Build the binary
 RUN go build -o alexa_music .
