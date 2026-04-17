@@ -35,12 +35,12 @@ func (g *GroupCall) Play(chatID int64, params *MediaParams) error {
 		},
 	}
 	if params.Video {
-		desc.Video = &ntgcalls.VideoDescription{
-			InputMode: ntgcalls.InputModeShell,
-			Input:     fmt.Sprintf("ffmpeg -i %s -loglevel panic -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1", params.Path),
-			Width:     1280,
-			Height:    720,
-			Fps:       24,
+		desc.Camera = &ntgcalls.VideoDescription{
+			MediaSource: ntgcalls.MediaSourceShell,
+			Input:       fmt.Sprintf("ffmpeg -i %s -loglevel panic -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1", params.Path),
+			Width:       1280,
+			Height:      720,
+			Fps:         24,
 		}
 	}
 
@@ -59,7 +59,7 @@ func (g *GroupCall) Play(chatID int64, params *MediaParams) error {
 		&telegram.PhoneJoinGroupCallParams{
 			Muted:        false,
 			VideoStopped: !params.Video,
-			Call:         call,
+			Call:         *call,
 			Params: &telegram.DataJson{
 				Data: jsonParams,
 			},
@@ -129,7 +129,7 @@ func joinGroupCall(ntg *ntgcalls.Client, client *telegram.Client, username strin
 		&telegram.PhoneJoinGroupCallParams{
 			Muted:        false,
 			VideoStopped: true,
-			Call:         call,
+			Call:         *call,
 			Params: &telegram.DataJson{
 				Data: jsonParams,
 			},

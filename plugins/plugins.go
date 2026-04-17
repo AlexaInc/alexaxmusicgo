@@ -133,6 +133,7 @@ func RegisterPlay(b *bot.Bot, yt *youtube.YouTube, q *queue.Manager, cfg *config
 	}).Filter(telegram.IsGroup)
 
 	b.Client.OnCommand("stop", func(m *telegram.NewMessage) error { return handleStop(b, q, m) }).Filter(telegram.IsGroup)
+	b.Client.OnCommand("end", func(m *telegram.NewMessage) error { return handleStop(b, q, m) }).Filter(telegram.IsGroup)
 	b.Client.OnCommand("pause", func(m *telegram.NewMessage) error { return handlePause(m) }).Filter(telegram.IsGroup)
 	b.Client.OnCommand("resume", func(m *telegram.NewMessage) error { return handleResume(m) }).Filter(telegram.IsGroup)
 	b.Client.OnCommand("skip", func(m *telegram.NewMessage) error { return handleSkip(m) }).Filter(telegram.IsGroup)
@@ -484,7 +485,10 @@ func RegisterLanguage(b *bot.Bot) {
 
 func RegisterSudo(b *bot.Bot) {
 	b.Client.OnCommand("addsudo", func(m *telegram.NewMessage) error {
-		if !b.IsSudo(m.Sender.ID) { return nil }
+		if !b.IsSudo(m.Sender.ID) {
+			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
+			return nil
+		}
 		_, args := bot.ParseCommand(m.Text())
 		if len(args) == 0 { return nil }
 		var uid int64
