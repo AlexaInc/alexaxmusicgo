@@ -158,6 +158,7 @@ func handlePlay(b *bot.Bot, yt *youtube.YouTube, q *queue.Manager, cfg *config.C
 				break
 			}
 		}
+		log.Printf("[play] userID=%d, ownerID=%d, isSudo=%v, isAdmin=%v, isAuth=%v, force=%v", userID, b.Config.OwnerID, isSudo, isAdmin, isAuth, force)
 		if !isAdmin && !isAuth && !isSudo {
 			_, err := m.Reply(lm.Get("play_admin"))
 			return err

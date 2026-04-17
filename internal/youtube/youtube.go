@@ -344,6 +344,16 @@ func (y *YouTube) Download(videoID string, video bool) (string, error) {
 	}
 	defer dlResp.Body.Close()
 
+	if dlResp.StatusCode != 200 {
+		return "", fmt.Errorf("download server returned status: %d", dlResp.StatusCode)
+	}
+	contentType := dlResp.Header.Get("Content-Type")
+	if strings.Contains(contentType, "text/html") {
+		body, _ := io.ReadAll(dlResp.Body)
+		log.Printf("[yt] ERROR: Received HTML instead of audio from %s: %s", convData.URL, string(body))
+		return "", fmt.Errorf("download server returned an error page (likely captcha or blocked)")
+	}
+
 	f, err := os.Create(filename)
 	if err != nil {
 		return "", err
