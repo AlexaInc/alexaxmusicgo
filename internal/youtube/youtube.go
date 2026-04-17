@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -371,9 +372,23 @@ func (y *YouTube) Download(videoID string, video bool) (string, error) {
 		return "", fmt.Errorf("downloaded file is empty")
 	}
 
-	log.Printf("[yt] Downloaded %s.%s (%.2f MB)", videoID, ext, float64(fileSize(filename))/(1024*1024))
+	pcmFilename := filename + ".pcm.raw"
+	// Return cached pre-transcoded file
+	if info, err := os.Stat(pcmFilename); err == nil && info.Size() > 0 {
+		return pcmFilename, nil
+	}
 
-	return filename, nil
+	// Pre-transcode to PCM Mono 48kHz (Zero-Lag Streaming)
+	log.Printf("[yt] Pre-transcoding %s to PCM...", videoID)
+	cmd := exec.Command("ffmpeg", "-y", "-i", filename, "-f", "s16le", "-ac", "1", "-ar", "48000", pcmFilename)
+	if err := cmd.Run(); err != nil {
+		log.Printf("[yt] WARNING: PCM pre-transcoding failed: %v", err)
+		return filename, nil // fallback to original
+	}
+
+	log.Printf("[yt] Downloaded & Pre-transcoded %s (%.2f MB PCM)", videoID, float64(fileSize(pcmFilename))/(1024*1024))
+
+	return pcmFilename, nil
 }
 
 // ─── PLAYLIST ─────────────────────────────────────────────────────────────────

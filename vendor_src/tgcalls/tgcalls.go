@@ -162,6 +162,15 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 		"ffmpeg %s -re -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 1 -ar 48000 pipe:1",
 		inputFlags, path,
 	)
+
+	// Optimization: If file is already pre-transcoded PCM, use zero-CPU command
+	if strings.HasSuffix(params.Path, ".pcm.raw") {
+		audioInput = fmt.Sprintf(
+			"ffmpeg -re -f s16le -ac 1 -ar 48000 -i %s -f s16le -ac 1 -ar 48000 pipe:1",
+			path,
+		)
+	}
+
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
 			"ffmpeg %s -re -ss %d -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 1 -ar 48000 pipe:1",
