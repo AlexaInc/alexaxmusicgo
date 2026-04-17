@@ -21,13 +21,16 @@ RUN go build -o alexa_music .
 # Final Stage
 FROM alpine:latest
 
-# Install runtime dependencies (ffmpeg for audio/video processing)
-RUN apk add --no-cache ffmpeg ca-certificates curl
+# Install runtime dependencies
+RUN apk add --no-cache ffmpeg ca-certificates curl gcompat
 
 WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/alexa_music .
+
+# Copy shared library
+COPY --from=builder /app/vendor_src/tgcalls/libntgcalls.so /usr/lib/libntgcalls.so
 
 # Copy assets
 COPY --from=builder /app/assets ./assets
