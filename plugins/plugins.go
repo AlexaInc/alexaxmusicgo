@@ -610,7 +610,7 @@ func RegisterCallbacks(b *bot.Bot, ytHelper *youtube.YouTube, q *queue.Manager, 
 					_, _ = c.Answer("Track expired or not in queue.", &telegram.CallbackOptions{Alert: true})
 					return nil
 				}
-				_ = c.Answer("Processing Play Now...", &telegram.CallbackOptions{Alert: false})
+				_, _ = c.Answer("Processing Play Now...", &telegram.CallbackOptions{Alert: false})
 				if track.FilePath == "" {
 					path, err := ytHelper.Download(track.ID, track.Video)
 					if err != nil {
