@@ -117,7 +117,12 @@ func (g *GroupCall) Resume(chatID int64) error {
 
 func (g *GroupCall) OnStreamEnd(f func(int64)) {
 	g.ntg.OnStreamEnd(func(chatID int64, streamType ntgcalls.StreamType, streamDevice ntgcalls.StreamDevice) {
-		f(chatID)
+		// Only trigger PlayNext when the AUDIO (microphone) stream ends.
+		// Ignoring CameraStream / ScreenStream endings which fire immediately
+		// when no video source is configured.
+		if streamDevice == ntgcalls.MicrophoneStream {
+			f(chatID)
+		}
 	})
 }
 
@@ -127,14 +132,16 @@ func (g *GroupCall) OnLeave(f func(int64)) {
 
 // buildDesc constructs a MediaDescription from MediaParams.
 func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
+	// Quote the path so filenames with spaces don't break the shell command.
+	path := `"` + params.Path + `"`
 	audioInput := fmt.Sprintf(
-		"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i %s -loglevel quiet -f s16le -ac 2 -ar 48000 pipe:1",
-		params.Path,
+		"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+		path,
 	)
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss %d -i %s -loglevel quiet -f s16le -ac 2 -ar 48000 pipe:1",
-			params.SeekDelay, params.Path,
+			"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss %d -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+			params.SeekDelay, path,
 		)
 	}
 	desc := ntgcalls.MediaDescription{
@@ -149,8 +156,8 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 		desc.Camera = &ntgcalls.VideoDescription{
 			MediaSource: ntgcalls.MediaSourceShell,
 			Input: fmt.Sprintf(
-				"ffmpeg -i %s -loglevel quiet -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1",
-				params.Path,
+				"ffmpeg -i %s -loglevel warning -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1",
+				path,
 			),
 			Width:  1280,
 			Height: 720,
