@@ -136,12 +136,12 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 	path := `"` + params.Path + `"`
 
 	audioInput := fmt.Sprintf(
-		"ffmpeg -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+		"ffmpeg -re -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
 		path,
 	)
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -ss %d -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+			"ffmpeg -re -ss %d -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
 			params.SeekDelay, path,
 		)
 	}
