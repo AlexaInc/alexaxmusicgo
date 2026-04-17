@@ -558,15 +558,18 @@ func RegisterCallbacks(b *bot.Bot, ytHelper *youtube.YouTube, q *queue.Manager, 
 			var p int
 			fmt.Sscan(strings.TrimPrefix(data, "radio_page_"), &p)
 			_, _ = b.EditMessageReplyMarkup(chatID, c.MessageID, RadioMarkup(p))
+			_, _ = c.Answer("")
+			return nil
 		}
 		if strings.HasPrefix(data, "radio_") {
 			link, ok := RadioLinks[data]
 			if !ok { return nil }
-			_, _ = c.Answer(fmt.Sprintf("Switching to %s...", link[0]))
+			_, _ = c.Answer(fmt.Sprintf("📻 Switching to %s...", link[0]), &telegram.CallbackOptions{Alert: true})
 			track := &queue.Track{ID: "radio_live", Title: "Radio: " + link[0], URL: link[1], FilePath: link[1], User: userMention, Video: false, StreamType: "live", Thumbnail: cfg.DefaultThumb}
 			q.ForceAdd(chatID, track, 0)
 			_ = calls.E.PlayMedia(b.Client, chatID, track, 0)
-			_, _ = c.Edit(fmt.Sprintf("📡 <b>Now Streaming:</b> <code>%s</code>\n👤 <b>Requested by:</b> %s", link[0], userMention), &telegram.SendOptions{ReplyMarkup: bot.ControlsMarkup(chatID)})
+			// Send a NEW message instead of editing the radio menu away
+			_, _ = b.Client.SendMessage(chatID, fmt.Sprintf("📡 <b>Now Streaming:</b> <code>%s</code>\n👤 <b>Requested by:</b> %s", link[0], userMention), &telegram.SendOptions{ReplyMarkup: bot.ControlsMarkup(chatID)})
 		}
 		if strings.HasPrefix(data, "lang_change ") {
 			code := strings.TrimPrefix(data, "lang_change ")
