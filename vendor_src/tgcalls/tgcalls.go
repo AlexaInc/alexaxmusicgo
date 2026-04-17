@@ -134,13 +134,14 @@ func (g *GroupCall) OnLeave(f func(int64)) {
 func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 	// Quote the path so filenames with spaces don't break the shell command.
 	path := `"` + params.Path + `"`
+
 	audioInput := fmt.Sprintf(
-		"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+		"ffmpeg -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
 		path,
 	)
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -ss %d -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
+			"ffmpeg -ss %d -i %s -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
 			params.SeekDelay, path,
 		)
 	}
