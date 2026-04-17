@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -278,10 +279,12 @@ func (y *YouTube) Download(videoID string, video bool) (string, error) {
 		ext = "mp4"
 	}
 	filename := filepath.Join(dlDir, videoID+"."+ext)
-
-	// Return cached file
-	if info, err := os.Stat(filename); err == nil && info.Size() > 0 {
-		return filename, nil
+	// For audio, we pre-convert to pcm wav so streaming is zero CPU cost
+	pcmFile := filepath.Join(dlDir, videoID+".pcm.wav")
+	if !video {
+		if info, err := os.Stat(pcmFile); err == nil && info.Size() > 0 {
+			return pcmFile, nil
+		}
 	}
 
 	// Step 1: Get sanity key
@@ -362,6 +365,26 @@ func (y *YouTube) Download(videoID string, video bool) (string, error) {
 	}
 
 	log.Printf("[yt] Downloaded %s.%s (%.2f MB)", videoID, ext, float64(fileSize(filename))/(1024*1024))
+
+	if !video {
+		// Pre-convert mp3 → pcm wav so streaming is zero-cost (no real-time decode)
+		log.Printf("[yt] Converting %s to PCM wav...", videoID)
+		cmd := exec.Command("ffmpeg", "-y",
+			"-i", filename,
+			"-vn", "-threads", "0",
+			"-ac", "2", "-ar", "48000",
+			"-acodec", "pcm_s16le",
+			"-f", "wav",
+			pcmFile,
+		)
+		if err := cmd.Run(); err != nil {
+			log.Printf("[yt] PCM conversion failed: %v — using raw mp3", err)
+			return filename, nil
+		}
+		os.Remove(filename) // free space
+		log.Printf("[yt] Converted to PCM wav: %s", pcmFile)
+		return pcmFile, nil
+	}
 	return filename, nil
 }
 
