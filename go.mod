@@ -1,6 +1,6 @@
 module alexamusic
 
-go 1.21.0
+go 1.25.0
 
 require (
 	github.com/amarnathcjd/gogram v1.7.3
