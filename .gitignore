@@ -25,3 +25,5 @@ Thumbs.db
 go_build_*
 /vendor/
 /tmp/
+**/__pycache__/
+/reference/

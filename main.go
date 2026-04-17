@@ -29,10 +29,10 @@ func main() {
 	dashboard.Start(cfg)
 
 	// 3. Load i18n locales
-	lang.Load("anony/locales")
+	lang.Load("assets/locales")
 
 	// 3.5. Load TV stations
-	if err := tv.Load("anony/helpers/channels.json"); err != nil {
+	if err := tv.Load("assets/tv/channels.json"); err != nil {
 		log.Printf("[main] Warning: TV channels failed to load: %v", err)
 	}
 
