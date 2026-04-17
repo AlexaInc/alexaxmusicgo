@@ -24,6 +24,7 @@ func main() {
 	// 1. Load configuration
 	cfg := config.Load()
 	cfg.Check()
+	log.Printf("[main] Owner ID: %d", cfg.OwnerID)
 
 	// 2. Start HTTP dashboard early so health checks pass immediately
 	dashboard.Start(cfg)
