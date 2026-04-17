@@ -314,6 +314,7 @@ func RegisterQueue(b *bot.Bot, q *queue.Manager) {
 func RegisterActive(b *bot.Bot) {
 	b.Client.OnCommand("active", func(m *telegram.NewMessage) error {
 		if !b.IsSudo(m.Sender.ID) {
+			_, _ = m.Reply("❌ <b>Sudo access required for this command.</b>")
 			return nil
 		}
 		lm := bot.GetLang(m.ChatID())
@@ -384,7 +385,10 @@ func getReplyUserID(m *telegram.NewMessage) int64 {
 
 func RegisterBlacklist(b *bot.Bot) {
 	b.Client.OnCommand("blacklist", func(m *telegram.NewMessage) error {
-		if !b.IsSudo(m.Sender.ID) { return nil }
+		if !b.IsSudo(m.Sender.ID) {
+			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
+			return nil
+		}
 		_, args := bot.ParseCommand(m.Text())
 		if len(args) == 0 { return nil }
 		var id int64
@@ -396,7 +400,14 @@ func RegisterBlacklist(b *bot.Bot) {
 
 func RegisterBroadcast(b *bot.Bot) {
 	b.Client.OnCommand("broadcast", func(m *telegram.NewMessage) error {
-		if !b.IsSudo(m.Sender.ID) || m.ReplyToMsgID() == 0 { return nil }
+		if !b.IsSudo(m.Sender.ID) {
+			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
+			return nil
+		}
+		if m.ReplyToMsgID() == 0 {
+			_, _ = m.Reply("❌ <b>Please reply to a message to broadcast it.</b>")
+			return nil
+		}
 		lm := bot.GetLang(m.ChatID())
 		sent, failed := 0, 0
 		replyID := m.ReplyToMsgID()
