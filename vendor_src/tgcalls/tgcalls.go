@@ -6,6 +6,7 @@ import "C"
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/amarnathcjd/tgcalls/ntgcalls"
@@ -132,17 +133,39 @@ func (g *GroupCall) OnLeave(f func(int64)) {
 
 // buildDesc constructs a MediaDescription from MediaParams.
 func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
-	// Quote the path so filenames with spaces don't break the shell command.
-	path := `"` + params.Path + `"`
+	path := params.Path
+	if !strings.HasPrefix(path, "http") {
+		path = `"` + path + `"`
+	}
 
+	headers := ""
+	if len(params.Headers) > 0 {
+		hStr := ""
+		for k, v := range params.Headers {
+			hStr += fmt.Sprintf("%s: %s\r\n", k, v)
+		}
+		headers = fmt.Sprintf("-headers \"%s\"", hStr)
+	}
+
+	isStream := strings.HasPrefix(params.Path, "http")
+	inputFlags := "-threads 0"
+	if isStream {
+		inputFlags += " -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+	}
+	if headers != "" {
+		inputFlags += " " + headers
+	}
+
+	// Always use -re to prevent bursting which causes crackling/static sound
+	// added aresample to ensure perfect clock sync (removes crackling)
 	audioInput := fmt.Sprintf(
-		"ffmpeg -re -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
-		path,
+		"ffmpeg %s -re -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 2 -ar 48000 pipe:1",
+		inputFlags, path,
 	)
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -re -ss %d -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 48000 pipe:1",
-			params.SeekDelay, path,
+			"ffmpeg %s -re -ss %d -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 2 -ar 48000 pipe:1",
+			inputFlags, params.SeekDelay, path,
 		)
 	}
 	desc := ntgcalls.MediaDescription{
@@ -157,8 +180,8 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 		desc.Camera = &ntgcalls.VideoDescription{
 			MediaSource: ntgcalls.MediaSourceShell,
 			Input: fmt.Sprintf(
-				"ffmpeg -i %s -loglevel warning -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1",
-				path,
+				"ffmpeg %s -i %s -loglevel warning -f rawvideo -r 24 -pix_fmt yuv420p -vf scale=1280:720 pipe:1",
+				inputFlags, path,
 			),
 			Width:  1280,
 			Height: 720,
