@@ -5,7 +5,7 @@ FROM golang:alpine AS builder
 ENV GOTOOLCHAIN=auto
 
 # Install build dependencies
-RUN apk add --no-cache git
+RUN apk add --no-cache git build-base musl-dev gcc g++
 
 WORKDIR /app
 

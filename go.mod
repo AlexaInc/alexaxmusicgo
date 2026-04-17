@@ -3,8 +3,8 @@ module alexamusic
 go 1.25.0
 
 require (
-	github.com/amarnathcjd/gogram v1.7.3
-	github.com/amarnathcjd/tgcalls v0.0.0-00010101000000-000000000000
+	github.com/amarnathcjd/gogram v1.7.4-0.20260407173610-340767236b4c
+	github.com/amarnathcjd/tgcalls v0.0.0-20241225155446-efd1580c357f
 	github.com/joho/godotenv v1.5.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	go.mongodb.org/mongo-driver v1.17.9
@@ -13,7 +13,7 @@ require (
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
@@ -31,4 +31,4 @@ require (
 	golang.org/x/text v0.17.0 // indirect
 )
 
-replace github.com/amarnathcjd/tgcalls => ./tgcalls_stub
+replace github.com/amarnathcjd/tgcalls => ./vendor_src/tgcalls
