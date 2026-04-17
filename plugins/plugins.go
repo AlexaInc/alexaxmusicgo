@@ -501,12 +501,59 @@ func RegisterSudo(b *bot.Bot) {
 			return nil
 		}
 		_, args := bot.ParseCommand(m.Text())
-		if len(args) == 0 { return nil }
+		if len(args) == 0 {
+			_, _ = m.Reply("Usage: <code>/addsudo &lt;user_id&gt;</code>")
+			return nil
+		}
 		var uid int64
 		fmt.Sscan(args[0], &uid)
+		if uid == 0 {
+			_, _ = m.Reply("❌ Invalid user ID.")
+			return nil
+		}
 		db.DB.AddSudo(uid)
 		b.SudoIDs[uid] = true
-		return nil
+		_, err := m.Reply(fmt.Sprintf("✅ <code>%d</code> added as sudo user.", uid))
+		return err
+	})
+
+	b.Client.OnCommand("rmsudo", func(m *telegram.NewMessage) error {
+		if !b.IsSudo(m.Sender.ID) {
+			_, _ = m.Reply("❌ <b>Sudo access required.</b>")
+			return nil
+		}
+		_, args := bot.ParseCommand(m.Text())
+		if len(args) == 0 {
+			_, _ = m.Reply("Usage: <code>/rmsudo &lt;user_id&gt;</code>")
+			return nil
+		}
+		var uid int64
+		fmt.Sscan(args[0], &uid)
+		if uid == 0 {
+			_, _ = m.Reply("❌ Invalid user ID.")
+			return nil
+		}
+		db.DB.DelSudo(uid)
+		delete(b.SudoIDs, uid)
+		_, err := m.Reply(fmt.Sprintf("✅ <code>%d</code> removed from sudo users.", uid))
+		return err
+	})
+
+	b.Client.OnCommand("sudolist", func(m *telegram.NewMessage) error {
+		if !b.IsSudo(m.Sender.ID) {
+			return nil
+		}
+		sudoers := db.DB.GetSudoers()
+		if len(sudoers) == 0 {
+			_, err := m.Reply("No sudo users (except owner).")
+			return err
+		}
+		text := "🔑 <b>Sudo Users:</b>\n"
+		for _, id := range sudoers {
+			text += fmt.Sprintf("• <code>%d</code>\n", id)
+		}
+		_, err := m.Reply(text)
+		return err
 	})
 }
 
