@@ -4,8 +4,13 @@ FROM golang:1.21-alpine AS builder
 # Install build dependencies
 RUN apk add --no-cache git
 
-# Clone the repository
-RUN git clone https://github.com/AlexaInc/alexaxmusicgo.git .
+WORKDIR /app
+
+# Clone the repository using init+checkout to handle non-empty dir
+RUN git init . && \
+    git remote add origin https://github.com/AlexaInc/alexaxmusicgo.git && \
+    git fetch origin master && \
+    git checkout master -f
 
 # Build the binary
 RUN go build -o alexa_music .
