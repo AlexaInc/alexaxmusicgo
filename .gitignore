@@ -4,8 +4,6 @@
 alexa_music
 *.exe
 *.exe~
-*.dll
-*.so
 *.dylib
 
 # Sessions/Journal
