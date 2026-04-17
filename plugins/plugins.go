@@ -584,11 +584,46 @@ func RegisterCallbacks(b *bot.Bot, ytHelper *youtube.YouTube, q *queue.Manager, 
 
 		if strings.HasPrefix(data, "controls ") {
 			parts := strings.Fields(data)
-			if len(parts) < 3 { return nil }
+			if len(parts) < 3 {
+				return nil
+			}
 			action, cidStr := parts[1], parts[2]
 			var cid int64
 			fmt.Sscan(cidStr, &cid)
-			if action == "pause" { _ = calls.E.Pause(cid) } else if action == "resume" { _ = calls.E.Resume(cid) } else if action == "skip" { calls.E.PlayNext(cid) } else if action == "stop" { calls.E.Stop(cid) } else if action == "replay" { calls.E.Replay(cid) }
+			if action == "pause" {
+				_ = calls.E.Pause(cid)
+			} else if action == "resume" {
+				_ = calls.E.Resume(cid)
+			} else if action == "skip" {
+				calls.E.PlayNext(cid)
+			} else if action == "stop" {
+				calls.E.Stop(cid)
+			} else if action == "replay" {
+				calls.E.Replay(cid)
+			} else if action == "force" {
+				if len(parts) < 4 {
+					return nil
+				}
+				itemID := parts[3]
+				pos, track := q.CheckItem(cid, itemID)
+				if track == nil {
+					_, _ = c.Answer("Track expired or not in queue.", &telegram.CallbackOptions{Alert: true})
+					return nil
+				}
+				_ = c.Answer("Processing Play Now...", &telegram.CallbackOptions{Alert: false})
+				if track.FilePath == "" {
+					path, err := ytHelper.Download(track.ID, track.Video)
+					if err != nil {
+						_, _ = c.Edit("❌ Download failed: "+err.Error(), nil)
+						return nil
+					}
+					track.FilePath = path
+				}
+				q.ForceAdd(cid, track, pos)
+				_ = calls.E.PlayMedia(b.Client, cid, track, 0)
+				_, _ = c.Edit(fmt.Sprintf("📡 <b>Now Playing:</b> <a href=\"%s\">%s</a>\n👤 <b>Requested by:</b> %s", track.URL, track.Title, track.User), &telegram.SendOptions{ReplyMarkup: bot.ControlsMarkup(cid)})
+				return nil
+			}
 			_, _ = c.Answer(lm.Get("processing"))
 			return nil
 		}
