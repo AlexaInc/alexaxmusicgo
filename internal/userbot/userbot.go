@@ -55,10 +55,11 @@ func (u *Userbot) Boot() error {
 
 func (u *Userbot) startClient(name, session string) (*telegram.Client, error) {
 	client, err := telegram.NewClient(telegram.ClientConfig{
-		AppID:   int32(u.cfg.APIID),
-		AppHash: u.cfg.APIHash,
-		Session: session,
-		Logger:  nil,
+		AppID:         int32(u.cfg.APIID),
+		AppHash:       u.cfg.APIHash,
+		StringSession: session,
+		MemorySession: true,
+		Logger:        nil,
 	})
 	if err != nil {
 		return nil, err
