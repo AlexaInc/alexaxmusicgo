@@ -159,28 +159,28 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 	// Robust FFmpeg command: Using -re for pacing and async aresample for sync
 	// These flags are aimed at eliminating cracking seen in logs (header missing/overread)
 	audioInput := fmt.Sprintf(
-		"ffmpeg %s -re -i %s -vn -sn -loglevel warning -af \"aresample=44100:async=1:min_hard_comp=0.100000:first_pts=0\" -f s16le -ac 2 -ar 44100 pipe:1",
+		"ffmpeg %s -re -i %s -vn -sn -loglevel warning -af \"aresample=48000:async=1:min_hard_comp=0.100000:first_pts=0\" -f s16le -ac 2 -ar 48000 pipe:1",
 		inputFlags, path,
 	)
  
 	// Optimization: If file is already pre-transcoded PCM, use zero-CPU command
 	if strings.HasSuffix(params.Path, ".pcm.raw") {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -re -f s16le -ac 2 -ar 44100 -i %s -f s16le -ac 2 -ar 44100 pipe:1",
+			"ffmpeg -re -f s16le -ac 2 -ar 48000 -i %s -f s16le -ac 2 -ar 48000 pipe:1",
 			path,
 		)
 	}
  
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg %s -re -ss %d -i %s -vn -sn -loglevel warning -af \"aresample=44100:async=1:min_hard_comp=0.100000:first_pts=0\" -f s16le -ac 2 -ar 44100 pipe:1",
+			"ffmpeg %s -re -ss %d -i %s -vn -sn -loglevel warning -af \"aresample=48000:async=1:min_hard_comp=0.100000:first_pts=0\" -f s16le -ac 2 -ar 48000 pipe:1",
 			inputFlags, params.SeekDelay, path,
 		)
 	}
 	desc := ntgcalls.MediaDescription{
 		Microphone: &ntgcalls.AudioDescription{
 			MediaSource:  ntgcalls.MediaSourceShell,
-			SampleRate:   44100,
+			SampleRate:   48000,
 			ChannelCount: 2, // Stereo
 			Input:        audioInput,
 		},
