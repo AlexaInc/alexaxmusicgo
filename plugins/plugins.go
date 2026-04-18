@@ -517,14 +517,14 @@ func RegisterSudo(b *bot.Bot) {
 			return nil
 		}
 		_, args := bot.ParseCommand(m.Text())
-		if len(args) == 0 {
-			_, _ = m.Reply("Usage: <code>/addsudo &lt;user_id&gt;</code>")
-			return nil
-		}
 		var uid int64
-		fmt.Sscan(args[0], &uid)
+		if len(args) > 0 {
+			fmt.Sscan(args[0], &uid)
+		} else {
+			uid = getReplyUserID(m)
+		}
 		if uid == 0 {
-			_, _ = m.Reply("❌ Invalid user ID.")
+			_, _ = m.Reply("Usage: <code>/addsudo &lt;user_id&gt;</code> or <b>reply</b> to a user.")
 			return nil
 		}
 		db.DB.AddSudo(uid)
@@ -532,7 +532,7 @@ func RegisterSudo(b *bot.Bot) {
 		_, err := m.Reply(fmt.Sprintf("✅ <code>%d</code> added as sudo user.", uid))
 		return err
 	})
-
+ 
 	b.Client.OnCommand("rmsudo", func(m *telegram.NewMessage) error {
 		if m.Sender == nil {
 			return nil
@@ -542,14 +542,14 @@ func RegisterSudo(b *bot.Bot) {
 			return nil
 		}
 		_, args := bot.ParseCommand(m.Text())
-		if len(args) == 0 {
-			_, _ = m.Reply("Usage: <code>/rmsudo &lt;user_id&gt;</code>")
-			return nil
-		}
 		var uid int64
-		fmt.Sscan(args[0], &uid)
+		if len(args) > 0 {
+			fmt.Sscan(args[0], &uid)
+		} else {
+			uid = getReplyUserID(m)
+		}
 		if uid == 0 {
-			_, _ = m.Reply("❌ Invalid user ID.")
+			_, _ = m.Reply("Usage: <code>/rmsudo &lt;user_id&gt;</code> or <b>reply</b> to a user.")
 			return nil
 		}
 		db.DB.DelSudo(uid)

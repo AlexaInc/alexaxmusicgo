@@ -148,7 +148,7 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 	}
 
 	isStream := strings.HasPrefix(params.Path, "http")
-	inputFlags := "-threads 0 -probesize 32 -analyzeduration 0"
+	inputFlags := "-threads 0"
 	if isStream {
 		inputFlags += " -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
 	}
@@ -156,32 +156,32 @@ func buildDesc(params *MediaParams) ntgcalls.MediaDescription {
 		inputFlags += " " + headers
 	}
 
-	// Always use -re to prevent bursting which causes crackling/static sound
-	// Switching to Mono (-ac 1) reduces CPU usage by 50% to fix crackling
+	// Simplified FFmpeg command: Removing -re and aresample as suggested by user to fix cracking
+	// Switching to Stereo 44.1kHz as the target format
 	audioInput := fmt.Sprintf(
-		"ffmpeg %s -re -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 1 -ar 48000 pipe:1",
+		"ffmpeg %s -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 44100 pipe:1",
 		inputFlags, path,
 	)
-
+ 
 	// Optimization: If file is already pre-transcoded PCM, use zero-CPU command
 	if strings.HasSuffix(params.Path, ".pcm.raw") {
 		audioInput = fmt.Sprintf(
-			"ffmpeg -re -f s16le -ac 1 -ar 48000 -i %s -f s16le -ac 1 -ar 48000 pipe:1",
+			"ffmpeg -f s16le -ac 2 -ar 44100 -i %s -f s16le -ac 2 -ar 44100 pipe:1",
 			path,
 		)
 	}
-
+ 
 	if params.SeekDelay > 0 {
 		audioInput = fmt.Sprintf(
-			"ffmpeg %s -re -ss %d -i %s -vn -sn -loglevel warning -af \"aresample=48000:min_comp=0.001:min_hard_comp=0.1:first_pts=0\" -f s16le -ac 1 -ar 48000 pipe:1",
+			"ffmpeg %s -ss %d -i %s -vn -sn -loglevel warning -f s16le -ac 2 -ar 44100 pipe:1",
 			inputFlags, params.SeekDelay, path,
 		)
 	}
 	desc := ntgcalls.MediaDescription{
 		Microphone: &ntgcalls.AudioDescription{
 			MediaSource:  ntgcalls.MediaSourceShell,
-			SampleRate:   48000,
-			ChannelCount: 1, // Mono
+			SampleRate:   44100,
+			ChannelCount: 2, // Stereo
 			Input:        audioInput,
 		},
 	}

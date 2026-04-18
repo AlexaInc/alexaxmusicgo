@@ -378,9 +378,9 @@ func (y *YouTube) Download(videoID string, video bool) (string, error) {
 		return pcmFilename, nil
 	}
 
-	// Pre-transcode to PCM Mono 48kHz (Zero-Lag Streaming)
+	// Pre-transcode to PCM Stereo 44.1kHz (Zero-Lag Streaming)
 	log.Printf("[yt] Pre-transcoding %s to PCM...", videoID)
-	cmd := exec.Command("ffmpeg", "-y", "-i", filename, "-f", "s16le", "-ac", "1", "-ar", "48000", pcmFilename)
+	cmd := exec.Command("ffmpeg", "-y", "-i", filename, "-f", "s16le", "-ac", "2", "-ar", "44100", pcmFilename)
 	if err := cmd.Run(); err != nil {
 		log.Printf("[yt] WARNING: PCM pre-transcoding failed: %v", err)
 		return filename, nil // fallback to original
